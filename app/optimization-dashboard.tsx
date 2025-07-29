@@ -136,7 +136,11 @@ export default function OptimizationDashboard() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid grid-cols-4">
+            <TabsList className="grid grid-cols-5">
+              <TabsTrigger value="original" className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Original Plan
+              </TabsTrigger>
               <TabsTrigger value="time" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Time Optimization
@@ -154,67 +158,6 @@ export default function OptimizationDashboard() {
                 Custom Adjustment
               </TabsTrigger>
             </TabsList>
-            
-            {/* Refresh button for tabs */}
-            {activeTab === "time" && (
-              <button
-                onClick={fetchTimeOptimizationData}
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    กำลังโหลด...
-                  </>
-                ) : (
-                  <>
-                    <Package className="h-4 w-4" />
-                    รีเฟรชข้อมูล
-                  </>
-                )}
-              </button>
-            )}
-            
-            {activeTab === "cost" && (
-              <button
-                onClick={fetchCostOptimizationData}
-                disabled={loading}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    กำลังโหลด...
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="h-4 w-4" />
-                    รีเฟรชข้อมูล
-                  </>
-                )}
-              </button>
-            )}
-            
-            {activeTab === "products" && (
-              <button
-                onClick={fetchProductsData}
-                disabled={loading}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    กำลังโหลด...
-                  </>
-                ) : (
-                  <>
-                    <Target className="h-4 w-4" />
-                    รีเฟรชข้อมูล
-                  </>
-                )}
-              </button>
-            )}
           </div>
 
           <TabsContent value="time" className="space-y-6">
@@ -222,7 +165,6 @@ export default function OptimizationDashboard() {
               data={timeOptimizationData} 
               loading={loading} 
               onRefresh={fetchTimeOptimizationData}
-              type="time"
             />
           </TabsContent>
 
@@ -231,7 +173,6 @@ export default function OptimizationDashboard() {
               data={costOptimizationData} 
               loading={loading} 
               onRefresh={fetchCostOptimizationData}
-              type="cost"
             />
           </TabsContent>
 
@@ -243,13 +184,20 @@ export default function OptimizationDashboard() {
             />
           </TabsContent>
 
+          <TabsContent value="original" className="space-y-6">
+            <OptimizationResultTab 
+              data={costOptimizationData} 
+              loading={loading} 
+              onRefresh={fetchCostOptimizationData}
+            />
+          </TabsContent>
+
           <TabsContent value="custom" className="space-y-6">
             <CustomAdjustmentTab 
               loading={loading} 
               onRefresh={() => {}}
               timeData={timeOptimizationData}
               costData={costOptimizationData}
-              productsData={productsData}
             />
           </TabsContent>
         </Tabs>

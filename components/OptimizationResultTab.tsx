@@ -1,180 +1,207 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ComposedChart } from "recharts"
-import { Calendar, DollarSign, Package, TrendingDown, Factory } from "lucide-react"
+import { useState, useEffect } from "react";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    ComposedChart,
+} from "recharts";
+import {
+    Calendar,
+    DollarSign,
+    Package,
+    TrendingDown,
+    Factory,
+} from "lucide-react";
 
 interface OptimizationResultTabProps {
-    onRefresh: () => void
-    loading: boolean
-    data: any
-    type: 'time' | 'cost' // เพิ่ม prop เพื่อแยกประเภท
+    onRefresh: () => void;
+    loading: boolean;
+    data: any;
 }
 
-export default function OptimizationResultTab({ onRefresh, loading, data, type }: OptimizationResultTabProps) {
+export default function OptimizationResultTab({
+    onRefresh,
+    loading,
+    data,
+}: OptimizationResultTabProps) {
     // Mock data สำหรับ fallback
-    const getMockData = () => {
-        if (type === 'time') {
-            return {
-                summary: {
-                    totalDays: 15,
-                    avgCost: 1250,
-                    totalProduction: 36,
-                    totalCost: 45000,
-                    successRate: 92.5,
-                    actualProduction: 34.2,
-                    avgCostPerTon: 1316,
-                    optimizationType: 'Genetic Algorithm',
-                    maxPossibleDays: 18,
-                    fitness: 0.8947,
-                    finalInventory: {
-                        pulp_a: 125.4,
-                        pulp_b: 89.2,
-                        pulp_c: 156.8
-                    }
+    const mockData = {
+        summary: {
+            totalDays: 15,
+            avgCost: 1250,
+            totalProduction: 36,
+            totalCost: 45000,
+            successRate: 92.5,
+            actualProduction: 34.2,
+            avgCostPerTon: 1316,
+            optimizationType: "Genetic Algorithm",
+            maxPossibleDays: 18,
+            fitness: 0.8947,
+            finalInventory: {
+                pulp_a: 125.4,
+                pulp_b: 89.2,
+                pulp_c: 156.8,
+            },
+        },
+        products: [
+            {
+                id: "P1",
+                name: "Product 1",
+                type: "Dura Board",
+                formula: "F1",
+                ratios: {
+                    Pulp_A: 0.28,
+                    Pulp_B: 0.22,
+                    Pulp_C: 0.28,
+                    เยื่อกระดาษ: 0.22,
+                    Eucalyptus: 0,
                 },
-                products: [
-                    {
-                        id: "P1",
-                        name: "Product 1",
-                        type: "Dura Board",
-                        formula: "F1",
-                        ratios: { Pulp_A: 0.28, Pulp_B: 0.22, Pulp_C: 0.28, เยื่อกระดาษ: 0.22, Eucalyptus: 0 },
-                        target_quantity: 10,
-                        unit: "tons",
-                    },
-                    {
-                        id: "P2",
-                        name: "Product 2",
-                        type: "Smart Board",
-                        formula: "F4",
-                        ratios: { Pulp_A: 0.35, Pulp_B: 0.15, Pulp_C: 0.35, เยื่อกระดาษ: 0.15, Eucalyptus: 0 },
-                        target_quantity: 14,
-                        unit: "tons",
-                    },
-                ],
-                productionPlan: [
-                    { day: 1, product: "P1", formula: "F1", quantity: 80, target_quantity: 85, rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 } },
-                    { day: 2, product: "P2", formula: "F4", quantity: 100, target_quantity: 100, rawMaterials: { A: 35, B: 15, C: 35, D: 15 } },
-                ],
-                inventoryData: [
-                    { day: 1, date: "2025-01-01", inventory: 950, materialA: 240, materialB: 180, materialC: 200, materialD: 160, eucalyptus: 240, pulp_a: 180, pulp_b: 200, pulp_c: 160, deliveries: [] },
-                    { day: 2, date: "2025-01-02", inventory: 850, materialA: 205, materialB: 165, materialC: 165, materialD: 145, eucalyptus: 205, pulp_a: 165, pulp_b: 165, pulp_c: 145, deliveries: [] },
-                ],
-                dataPerDay: [
-                    { day: 1, cost_per_ton: 1250, cost: 25000, production_quantity: 20 },
-                    { day: 2, cost_per_ton: 1180, cost: 23600, production_quantity: 20 },
-                ]
-            }
-        } else {
-            return {
-                summary: {
-                    totalDays: 12,
-                    avgCost: 1180,
-                    totalProduction: 32,
-                    totalCost: 37760,
-                    successRate: 88.3,
-                    actualProduction: 28.3,
-                    avgCostPerTon: 1335,
-                    optimizationType: 'Cost Optimization',
-                    maxPossibleDays: 15,
-                    fitness: 0.9124,
-                    finalInventory: {
-                        pulp_a: 98.7,
-                        pulp_b: 112.4,
-                        pulp_c: 87.9
-                    }
+                target_quantity: 10,
+                unit: "tons",
+            },
+            {
+                id: "P2",
+                name: "Product 2",
+                type: "Smart Board",
+                formula: "F4",
+                ratios: {
+                    Pulp_A: 0.35,
+                    Pulp_B: 0.15,
+                    Pulp_C: 0.35,
+                    เยื่อกระดาษ: 0.15,
+                    Eucalyptus: 0,
                 },
-                products: [
-                    {
-                        id: "P1",
-                        name: "Product 1",
-                        type: "Dura Board",
-                        formula: "F1",
-                        ratios: { Pulp_A: 0.28, Pulp_B: 0.22, Pulp_C: 0.28, เยื่อกระดาษ: 0.22, Eucalyptus: 0 },
-                        target_quantity: 10,
-                        unit: "tons",
-                    },
-                    {
-                        id: "P2",
-                        name: "Product 2",
-                        type: "Smart Board",
-                        formula: "F4",
-                        ratios: { Pulp_A: 0.35, Pulp_B: 0.15, Pulp_C: 0.35, เยื่อกระดาษ: 0.15, Eucalyptus: 0 },
-                        target_quantity: 14,
-                        unit: "tons",
-                    },
-                ],
-                productionPlan: [
-                    { day: 1, product: "P1", formula: "F1", quantity: 80, target_quantity: 85, rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 } },
-                    { day: 2, product: "P2", formula: "F4", quantity: 100, target_quantity: 100, rawMaterials: { A: 35, B: 15, C: 35, D: 15 } },
-                ],
-                inventoryData: [
-                    { day: 1, date: "2025-01-01", inventory: 950, materialA: 240, materialB: 180, materialC: 200, materialD: 160, eucalyptus: 240, pulp_a: 180, pulp_b: 200, pulp_c: 160, deliveries: [] },
-                    { day: 2, date: "2025-01-02", inventory: 850, materialA: 205, materialB: 165, materialC: 165, materialD: 145, eucalyptus: 205, pulp_a: 165, pulp_b: 165, pulp_c: 145, deliveries: [] },
-                ],
-                dataPerDay: [
-                    { day: 1, cost_per_ton: 1180, cost: 23600, production_quantity: 20 },
-                    { day: 2, cost_per_ton: 1160, cost: 23200, production_quantity: 20 },
-                ]
-            }
-        }
-    }
+                target_quantity: 14,
+                unit: "tons",
+            },
+        ],
+        productionPlan: [
+            {
+                day: 1,
+                product: "P1",
+                formula: "F1",
+                quantity: 80,
+                target_quantity: 85,
+                rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 },
+            },
+            {
+                day: 2,
+                product: "P2",
+                formula: "F4",
+                quantity: 100,
+                target_quantity: 100,
+                rawMaterials: { A: 35, B: 15, C: 35, D: 15 },
+            },
+        ],
+        inventoryData: [
+            {
+                day: 1,
+                date: "2025-01-01",
+                inventory: 950,
+                materialA: 240,
+                materialB: 180,
+                materialC: 200,
+                materialD: 160,
+                eucalyptus: 240,
+                pulp_a: 180,
+                pulp_b: 200,
+                pulp_c: 160,
+                deliveries: [],
+            },
+            {
+                day: 2,
+                date: "2025-01-02",
+                inventory: 850,
+                materialA: 205,
+                materialB: 165,
+                materialC: 165,
+                materialD: 145,
+                eucalyptus: 205,
+                pulp_a: 165,
+                pulp_b: 165,
+                pulp_c: 145,
+                deliveries: [],
+            },
+        ],
+        dataPerDay: [
+            {
+                day: 1,
+                cost_per_ton: 1250,
+                cost: 25000,
+                production_quantity: 20,
+            },
+            {
+                day: 2,
+                cost_per_ton: 1180,
+                cost: 23600,
+                production_quantity: 20,
+            },
+        ],
+    };
 
-    const currentData = data || getMockData()
-
-    // ส่วนที่แตกต่างกันตาม type
-    const getTitle = () => {
-        return type === 'time' 
-            ? "Time Optimization Summary - สรุปผลการปรับปรุงด้านเวลา"
-            : "Cost Optimization Summary - สรุปผลการปรับปรุงด้านต้นทุน"
-    }
-
-    const getDescription = () => {
-        return type === 'time'
-            ? "สรุปผลลัพธ์การปรับปรุงประสิทธิภาพด้านเวลา"
-            : "สรุปผลลัพธ์การปรับปรุงประสิทธิภาพด้านต้นทุน"
-    }
+    const currentData = data || mockData;
 
     // Process inventory data to extract delivery amounts by pulp type
-    const processedInventoryData = currentData.inventoryData?.map((item: any) => {
-        let delivery_pulp_a = 0;
-        let delivery_pulp_b = 0;
-        let delivery_pulp_c = 0;
+    const processedInventoryData =
+        currentData.inventoryData?.map((item: any) => {
+            let delivery_pulp_a = 0;
+            let delivery_pulp_b = 0;
+            let delivery_pulp_c = 0;
 
-        if (item.deliveries && item.deliveries.length > 0) {
-            item.deliveries.forEach((delivery: any) => {
-                switch (delivery.pulp_type) {
-                    case 'Pulp_A':
-                        delivery_pulp_a += delivery.amount || 0;
-                        break;
-                    case 'Pulp_B':
-                        delivery_pulp_b += delivery.amount || 0;
-                        break;
-                    case 'Pulp_C':
-                        delivery_pulp_c += delivery.amount || 0;
-                        break;
-                }
-            });
-        }
+            if (item.deliveries && item.deliveries.length > 0) {
+                item.deliveries.forEach((delivery: any) => {
+                    switch (delivery.pulp_type) {
+                        case "Pulp_A":
+                            delivery_pulp_a += delivery.amount || 0;
+                            break;
+                        case "Pulp_B":
+                            delivery_pulp_b += delivery.amount || 0;
+                            break;
+                        case "Pulp_C":
+                            delivery_pulp_c += delivery.amount || 0;
+                            break;
+                    }
+                });
+            }
 
-        return {
-            ...item,
-            delivery_pulp_a,
-            delivery_pulp_b,
-            delivery_pulp_c
-        };
-    }) || [];
+            return {
+                ...item,
+                delivery_pulp_a,
+                delivery_pulp_b,
+                delivery_pulp_c,
+            };
+        }) || [];
 
     if (!currentData) {
         return (
             <div className="flex items-center justify-center p-8">
                 <p className="text-gray-500">ไม่มีข้อมูลแสดง</p>
             </div>
-        )
+        );
     }
 
     return (
@@ -183,44 +210,66 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Days</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                            Total Days
+                        </CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{currentData.summary?.totalDays?.toFixed(3) || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {currentData.summary?.totalDays?.toFixed(3) || 0}
+                        </div>
                         <p className="text-xs text-muted-foreground">วัน</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                            Total Cost
+                        </CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">฿{currentData.summary?.totalCost?.toLocaleString() || 0}</div>
+                        <div className="text-2xl font-bold">
+                            ฿
+                            {currentData.summary?.totalCost?.toLocaleString() ||
+                                0}
+                        </div>
                         <p className="text-xs text-muted-foreground">บาท</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                            Success Rate
+                        </CardTitle>
                         <TrendingDown className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{currentData.summary?.successRate?.toFixed(1) || 0}%</div>
-                        <p className="text-xs text-muted-foreground">อัตราความสำเร็จ</p>
+                        <div className="text-2xl font-bold">
+                            {currentData.summary?.successRate?.toFixed(1) || 0}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            อัตราความสำเร็จ
+                        </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Actual Production</CardTitle>
+                        <CardTitle className="text-sm font-medium">
+                            Actual Production
+                        </CardTitle>
                         <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{currentData.summary?.actualProduction?.toFixed(2) || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {currentData.summary?.actualProduction?.toFixed(
+                                2
+                            ) || 0}
+                        </div>
                         <p className="text-xs text-muted-foreground">ตัน</p>
                     </CardContent>
                 </Card>
@@ -231,59 +280,118 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl">
                         <Factory className="h-6 w-6" />
-                        Product Formulas & Material Ratios - สูตรและอัตราส่วนวัตถุดิบ
+                        Product Formulas & Material Ratios -
+                        สูตรและอัตราส่วนวัตถุดิบ
                     </CardTitle>
-                    <CardDescription>แสดงสูตรและอัตราส่วนวัตถุดิบของแต่ละผลิตภัณฑ์</CardDescription>
+                    <CardDescription>
+                        แสดงสูตรและอัตราส่วนวัตถุดิบของแต่ละผลิตภัณฑ์
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="text-center font-semibold">Product Type</TableHead>
-                                <TableHead className="text-center font-semibold">Product</TableHead>
-                                <TableHead className="text-center font-semibold">Formula</TableHead>
-                                <TableHead className="text-center font-semibold">Pulp A (%)</TableHead>
-                                <TableHead className="text-center font-semibold">Pulp B (%)</TableHead>
-                                <TableHead className="text-center font-semibold">Pulp C (%)</TableHead>
-                                <TableHead className="text-center font-semibold">เยื่อกระดาษ (%)</TableHead>
-                                <TableHead className="text-center font-semibold">Eucalyptus (%)</TableHead>
-                                <TableHead className="text-center font-semibold">Target (tons)</TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Product Type
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Product
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Formula
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Pulp A (%)
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Pulp B (%)
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Pulp C (%)
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    เยื่อกระดาษ (%)
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Eucalyptus (%)
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Target (tons)
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {currentData.products?.map((product: any, index: number) => (
-                                <TableRow key={product.name || index} className="hover:bg-gray-50">
-                                    <TableCell className="text-center font-bold text-purple-600 text-sm">
-                                        {product.type}
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold text-blue-600 text-sm" title={product.name}>
-                                        {product.name?.length > 30 ? `${product.name.substring(0, 30)}...` : product.name}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                            {product.formula}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        {((product.ratios?.Pulp_A || 0) * 100).toFixed(1)}%
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        {((product.ratios?.Pulp_B || 0) * 100).toFixed(1)}%
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        {((product.ratios?.Pulp_C || 0) * 100).toFixed(1)}%
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        {((product.ratios?.เยื่อกระดาษ || 0) * 100).toFixed(1)}%
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        {((product.ratios?.Eucalyptus || 0) * 100).toFixed(1)}%
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold text-green-600">
-                                        {product.target_quantity?.toFixed(2) || 0}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {currentData.products?.map(
+                                (product: any, index: number) => (
+                                    <TableRow
+                                        key={product.name || index}
+                                        className="hover:bg-gray-50"
+                                    >
+                                        <TableCell className="text-center font-bold text-purple-600 text-sm">
+                                            {product.type}
+                                        </TableCell>
+                                        <TableCell
+                                            className="text-center font-bold text-blue-600 text-sm"
+                                            title={product.name}
+                                        >
+                                            {product.name?.length > 30
+                                                ? `${product.name.substring(
+                                                      0,
+                                                      30
+                                                  )}...`
+                                                : product.name}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge
+                                                variant="outline"
+                                                className="bg-blue-50 text-blue-700 border-blue-200"
+                                            >
+                                                {product.formula}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold">
+                                            {(
+                                                (product.ratios?.Pulp_A || 0) *
+                                                100
+                                            ).toFixed(1)}
+                                            %
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold">
+                                            {(
+                                                (product.ratios?.Pulp_B || 0) *
+                                                100
+                                            ).toFixed(1)}
+                                            %
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold">
+                                            {(
+                                                (product.ratios?.Pulp_C || 0) *
+                                                100
+                                            ).toFixed(1)}
+                                            %
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold">
+                                            {(
+                                                (product.ratios?.เยื่อกระดาษ ||
+                                                    0) * 100
+                                            ).toFixed(1)}
+                                            %
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold">
+                                            {(
+                                                (product.ratios?.Eucalyptus ||
+                                                    0) * 100
+                                            ).toFixed(1)}
+                                            %
+                                        </TableCell>
+                                        <TableCell className="text-center font-bold text-green-600">
+                                            {product.target_quantity?.toFixed(
+                                                2
+                                            ) || 0}
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -296,7 +404,9 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                         <Calendar className="h-5 w-5" />
                         Production Plan - แผนการผลิต
                     </CardTitle>
-                    <CardDescription>ตารางแสดงแผนการผลิตและการใช้วัตถุดิบในแต่ละวัน</CardDescription>
+                    <CardDescription>
+                        ตารางแสดงแผนการผลิตและการใช้วัตถุดิบในแต่ละวัน
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -311,37 +421,88 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {currentData.productionPlan?.map((plan: any, index: number) => {
-                                const achievementPercent = ((plan.quantity / plan.target_quantity) * 100).toFixed(1);
-                                return (
-                                    <TableRow key={`${plan.day}-${index}`}>
-                                        <TableCell className="font-medium">{plan.day}</TableCell>
-                                        <TableCell className="max-w-xs truncate" title={plan.product}>
-                                            {plan.product?.length > 40 ? `${plan.product.substring(0, 40)}...` : plan.product}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="text-xs">{plan.formula}</Badge>
-                                        </TableCell>
-                                        <TableCell className="font-semibold text-blue-600">
-                                            {plan.target_quantity?.toFixed(2)}
-                                        </TableCell>
-                                        <TableCell className={`font-semibold ${plan.quantity === plan.target_quantity ? 'text-green-600' : plan.quantity === 0 ? 'text-red-600' : 'text-yellow-600'}`}>
-                                            {plan.quantity?.toFixed(2)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <div className={`flex-1 rounded-full h-2 ${plan.quantity === 0 ? 'bg-red-500' : 'bg-gray-200'}`}>
+                            {currentData.productionPlan?.map(
+                                (plan: any, index: number) => {
+                                    const achievementPercent = (
+                                        (plan.quantity / plan.target_quantity) *
+                                        100
+                                    ).toFixed(1);
+                                    return (
+                                        <TableRow key={`${plan.day}-${index}`}>
+                                            <TableCell className="font-medium">
+                                                {plan.day}
+                                            </TableCell>
+                                            <TableCell
+                                                className="max-w-xs truncate"
+                                                title={plan.product}
+                                            >
+                                                {plan.product?.length > 40
+                                                    ? `${plan.product.substring(
+                                                          0,
+                                                          40
+                                                      )}...`
+                                                    : plan.product}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-xs"
+                                                >
+                                                    {plan.formula}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-blue-600">
+                                                {plan.target_quantity?.toFixed(
+                                                    2
+                                                )}
+                                            </TableCell>
+                                            <TableCell
+                                                className={`font-semibold ${
+                                                    plan.quantity ===
+                                                    plan.target_quantity
+                                                        ? "text-green-600"
+                                                        : plan.quantity === 0
+                                                        ? "text-red-600"
+                                                        : "text-yellow-600"
+                                                }`}
+                                            >
+                                                {plan.quantity?.toFixed(2)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
                                                     <div
-                                                        className={`h-2 rounded-full ${plan.quantity === plan.target_quantity ? 'bg-green-500' : 'bg-yellow-500'}`}
-                                                        style={{ width: `${Math.min(parseFloat(achievementPercent), 100)}%` }}
-                                                    ></div>
+                                                        className={`flex-1 rounded-full h-2 ${
+                                                            plan.quantity === 0
+                                                                ? "bg-red-500"
+                                                                : "bg-gray-200"
+                                                        }`}
+                                                    >
+                                                        <div
+                                                            className={`h-2 rounded-full ${
+                                                                plan.quantity ===
+                                                                plan.target_quantity
+                                                                    ? "bg-green-500"
+                                                                    : "bg-yellow-500"
+                                                            }`}
+                                                            style={{
+                                                                width: `${Math.min(
+                                                                    parseFloat(
+                                                                        achievementPercent
+                                                                    ),
+                                                                    100
+                                                                )}%`,
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-xs font-medium">
+                                                        {achievementPercent}%
+                                                    </span>
                                                 </div>
-                                                <span className="text-xs font-medium">{achievementPercent}%</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -356,7 +517,9 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                             <TrendingDown className="h-5 w-5" />
                             Material Inventory Trend
                         </CardTitle>
-                        <CardDescription>แนวโน้มการใช้วัตถุดิบ Eucalyptus และ Pulp แต่ละวัน</CardDescription>
+                        <CardDescription>
+                            แนวโน้มการใช้วัตถุดิบ Eucalyptus และ Pulp แต่ละวัน
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
@@ -367,24 +530,51 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                 <YAxis yAxisId="right" orientation="right" />
                                 <Tooltip
                                     formatter={(value: any, name: string) => {
-                                        if ((name.includes('delivery_') || name.includes('ส่งมอบ')) && parseFloat(value) === 0) {
+                                        if (
+                                            (name.includes("delivery_") ||
+                                                name.includes("ส่งมอบ")) &&
+                                            parseFloat(value) === 0
+                                        ) {
                                             return [null, null];
                                         }
 
                                         let displayName = name;
                                         switch (name) {
-                                            case 'eucalyptus': displayName = 'Eucalyptus คงเหลือ'; break;
-                                            case 'pulp_a': displayName = 'Pulp A คงเหลือ'; break;
-                                            case 'pulp_b': displayName = 'Pulp B คงเหลือ'; break;
-                                            case 'pulp_c': displayName = 'Pulp C คงเหลือ'; break;
-                                            case 'delivery_pulp_a': displayName = 'ส่งมอบ Pulp A'; break;
-                                            case 'delivery_pulp_b': displayName = 'ส่งมอบ Pulp B'; break;
-                                            case 'delivery_pulp_c': displayName = 'ส่งมอบ Pulp C'; break;
-                                            default: displayName = name;
+                                            case "eucalyptus":
+                                                displayName =
+                                                    "Eucalyptus คงเหลือ";
+                                                break;
+                                            case "pulp_a":
+                                                displayName = "Pulp A คงเหลือ";
+                                                break;
+                                            case "pulp_b":
+                                                displayName = "Pulp B คงเหลือ";
+                                                break;
+                                            case "pulp_c":
+                                                displayName = "Pulp C คงเหลือ";
+                                                break;
+                                            case "delivery_pulp_a":
+                                                displayName = "ส่งมอบ Pulp A";
+                                                break;
+                                            case "delivery_pulp_b":
+                                                displayName = "ส่งมอบ Pulp B";
+                                                break;
+                                            case "delivery_pulp_c":
+                                                displayName = "ส่งมอบ Pulp C";
+                                                break;
+                                            default:
+                                                displayName = name;
                                         }
-                                        return [`${parseFloat(value).toFixed(2)} ตัน`, displayName];
+                                        return [
+                                            `${parseFloat(value).toFixed(
+                                                2
+                                            )} ตัน`,
+                                            displayName,
+                                        ];
                                     }}
-                                    labelFormatter={(label) => `วันที่ ${label}`}
+                                    labelFormatter={(label) =>
+                                        `วันที่ ${label}`
+                                    }
                                 />
                                 <Bar
                                     yAxisId="right"
@@ -414,7 +604,11 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                     stroke="#8b5cf6"
                                     strokeWidth={3}
                                     name="Eucalyptus คงเหลือ"
-                                    dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                                    dot={{
+                                        fill: "#8b5cf6",
+                                        strokeWidth: 2,
+                                        r: 4,
+                                    }}
                                 />
                                 <Line
                                     yAxisId="left"
@@ -423,7 +617,11 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                     stroke="#82ca9d"
                                     strokeWidth={3}
                                     name="Pulp A คงเหลือ"
-                                    dot={{ fill: '#82ca9d', strokeWidth: 2, r: 4 }}
+                                    dot={{
+                                        fill: "#82ca9d",
+                                        strokeWidth: 2,
+                                        r: 4,
+                                    }}
                                 />
                                 <Line
                                     yAxisId="left"
@@ -432,7 +630,11 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                     stroke="#ffc658"
                                     strokeWidth={3}
                                     name="Pulp B คงเหลือ"
-                                    dot={{ fill: '#ffc658', strokeWidth: 2, r: 4 }}
+                                    dot={{
+                                        fill: "#ffc658",
+                                        strokeWidth: 2,
+                                        r: 4,
+                                    }}
                                 />
                                 <Line
                                     yAxisId="left"
@@ -441,7 +643,11 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                     stroke="#ff7300"
                                     strokeWidth={3}
                                     name="Pulp C คงเหลือ"
-                                    dot={{ fill: '#ff7300', strokeWidth: 2, r: 4 }}
+                                    dot={{
+                                        fill: "#ff7300",
+                                        strokeWidth: 2,
+                                        r: 4,
+                                    }}
                                 />
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -464,10 +670,21 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, 'ต้นทุนต่อตัน']}
-                                    labelFormatter={(label) => `วันที่ ${label}`}
+                                    formatter={(value: any) => [
+                                        `฿${parseFloat(
+                                            value
+                                        ).toLocaleString()}`,
+                                        "ต้นทุนต่อตัน",
+                                    ]}
+                                    labelFormatter={(label) =>
+                                        `วันที่ ${label}`
+                                    }
                                 />
-                                <Bar dataKey="cost_per_ton" fill="#8884d8" name="Cost per Ton" />
+                                <Bar
+                                    dataKey="cost_per_ton"
+                                    fill="#8884d8"
+                                    name="Cost per Ton"
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -489,10 +706,21 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, 'ต้นทุนรายวัน']}
-                                    labelFormatter={(label) => `วันที่ ${label}`}
+                                    formatter={(value: any) => [
+                                        `฿${parseFloat(
+                                            value
+                                        ).toLocaleString()}`,
+                                        "ต้นทุนรายวัน",
+                                    ]}
+                                    labelFormatter={(label) =>
+                                        `วันที่ ${label}`
+                                    }
                                 />
-                                <Bar dataKey="cost" fill="#82ca9d" name="Daily Cost" />
+                                <Bar
+                                    dataKey="cost"
+                                    fill="#82ca9d"
+                                    name="Daily Cost"
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -514,10 +742,19 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [`${parseFloat(value).toFixed(2)} ตัน`, 'ปริมาณการผลิต']}
-                                    labelFormatter={(label) => `วันที่ ${label}`}
+                                    formatter={(value: any) => [
+                                        `${parseFloat(value).toFixed(2)} ตัน`,
+                                        "ปริมาณการผลิต",
+                                    ]}
+                                    labelFormatter={(label) =>
+                                        `วันที่ ${label}`
+                                    }
                                 />
-                                <Bar dataKey="production_quantity" fill="#ffc658" name="Production Quantity" />
+                                <Bar
+                                    dataKey="production_quantity"
+                                    fill="#ffc658"
+                                    name="Production Quantity"
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -527,53 +764,113 @@ export default function OptimizationResultTab({ onRefresh, loading, data, type }
             {/* Summary Statistics */}
             <Card>
                 <CardHeader>
-                    <CardTitle>{getTitle()}</CardTitle>
-                    <CardDescription>{getDescription()}</CardDescription>
+                    <CardTitle>Summary - สรุปผล</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">{currentData.summary?.totalDays?.toFixed(3) || 0}</div>
-                            <div className="text-sm text-blue-600">วันในการผลิต</div>
+                            <div className="text-2xl font-bold text-blue-600">
+                                {currentData.summary?.totalDays?.toFixed(3) ||
+                                    0}
+                            </div>
+                            <div className="text-sm text-blue-600">
+                                วันในการผลิต
+                            </div>
                         </div>
                         <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">฿{currentData.summary?.avgCostPerTon?.toLocaleString() || 0}</div>
-                            <div className="text-sm text-green-600">ต้นทุนเฉลี่ย/ตัน</div>
+                            <div className="text-2xl font-bold text-green-600">
+                                ฿
+                                {currentData.summary?.avgCostPerTon?.toLocaleString() ||
+                                    0}
+                            </div>
+                            <div className="text-sm text-green-600">
+                                ต้นทุนเฉลี่ย/ตัน
+                            </div>
                         </div>
                         <div className="text-center p-4 bg-purple-50 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">{currentData.summary?.actualProduction?.toFixed(2) || 0}</div>
-                            <div className="text-sm text-purple-600">ผลิตจริง (ตัน)</div>
+                            <div className="text-2xl font-bold text-purple-600">
+                                {currentData.summary?.actualProduction?.toFixed(
+                                    2
+                                ) || 0}
+                            </div>
+                            <div className="text-sm text-purple-600">
+                                ผลิตจริง (ตัน)
+                            </div>
                         </div>
                         <div className="text-center p-4 bg-orange-50 rounded-lg">
-                            <div className="text-2xl font-bold text-orange-600">{currentData.products?.length || 0}</div>
-                            <div className="text-sm text-orange-600">จำนวนผลิตภัณฑ์</div>
+                            <div className="text-2xl font-bold text-orange-600">
+                                {currentData.products?.length || 0}
+                            </div>
+                            <div className="text-sm text-orange-600">
+                                จำนวนผลิตภัณฑ์
+                            </div>
                         </div>
                         <div className="text-center p-4 bg-red-50 rounded-lg">
-                            <div className="text-2xl font-bold text-red-600">{currentData.summary?.successRate?.toFixed(1) || 0}%</div>
-                            <div className="text-sm text-red-600">อัตราความสำเร็จ</div>
+                            <div className="text-2xl font-bold text-red-600">
+                                {currentData.summary?.successRate?.toFixed(1) ||
+                                    0}
+                                %
+                            </div>
+                            <div className="text-sm text-red-600">
+                                อัตราความสำเร็จ
+                            </div>
                         </div>
                     </div>
 
                     <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-gray-700">Optimization Details</h4>
+                            <h4 className="font-semibold text-gray-700">
+                                Optimization Details
+                            </h4>
                             <div className="mt-2 space-y-1 text-sm text-gray-600">
-                                <p>Algorithm: {currentData.summary?.optimizationType || 'N/A'}</p>
-                                <p>Max Possible Days: {currentData.summary?.maxPossibleDays || 'N/A'}</p>
-                                <p>Fitness Score: {currentData.summary?.fitness?.toFixed(4) || 'N/A'}</p>
+                                <p>
+                                    Algorithm:{" "}
+                                    {currentData.summary?.optimizationType ||
+                                        "N/A"}
+                                </p>
+                                <p>
+                                    Max Possible Days:{" "}
+                                    {currentData.summary?.maxPossibleDays ||
+                                        "N/A"}
+                                </p>
+                                <p>
+                                    Fitness Score:{" "}
+                                    {currentData.summary?.fitness?.toFixed(4) ||
+                                        "N/A"}
+                                </p>
                             </div>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-gray-700">Final Pulp Inventory</h4>
+                            <h4 className="font-semibold text-gray-700">
+                                Final Pulp Inventory
+                            </h4>
                             <div className="mt-2 space-y-1 text-sm text-gray-600">
-                                <p>Pulp A: {currentData.summary?.finalInventory?.pulp_a?.toFixed(2) || 0} ตัน</p>
-                                <p>Pulp B: {currentData.summary?.finalInventory?.pulp_b?.toFixed(2) || 0} ตัน</p>
-                                <p>Pulp C: {currentData.summary?.finalInventory?.pulp_c?.toFixed(2) || 0} ตัน</p>
+                                <p>
+                                    Pulp A:{" "}
+                                    {currentData.summary?.finalInventory?.pulp_a?.toFixed(
+                                        2
+                                    ) || 0}{" "}
+                                    ตัน
+                                </p>
+                                <p>
+                                    Pulp B:{" "}
+                                    {currentData.summary?.finalInventory?.pulp_b?.toFixed(
+                                        2
+                                    ) || 0}{" "}
+                                    ตัน
+                                </p>
+                                <p>
+                                    Pulp C:{" "}
+                                    {currentData.summary?.finalInventory?.pulp_c?.toFixed(
+                                        2
+                                    ) || 0}{" "}
+                                    ตัน
+                                </p>
                             </div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
         </div>
-    )
+    );
 }

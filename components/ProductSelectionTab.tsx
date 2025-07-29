@@ -122,7 +122,6 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
           data={optimizationData} 
           loading={optimizing} 
           onRefresh={runOptimization}
-          type="time"
         />
       </div>
     )

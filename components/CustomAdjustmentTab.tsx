@@ -179,7 +179,6 @@ export default function CustomAdjustmentTab({
     loading,
     timeData,
     costData,
-    productsData,
 }: CustomAdjustmentTabProps) {
     const [compareMode, setCompareMode] = useState<"time" | "cost">("time");
     const [customRatios, setCustomRatios] = useState<any[]>([]);
