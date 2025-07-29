@@ -1,70 +1,143 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ComposedChart } from "recharts"
 import { Calendar, DollarSign, Package, TrendingDown, Factory } from "lucide-react"
 
-interface CostOptimizationTabProps {
+interface OptimizationResultTabProps {
     onRefresh: () => void
     loading: boolean
     data: any
+    type: 'time' | 'cost' // เพิ่ม prop เพื่อแยกประเภท
 }
 
-export default function CostOptimizationTab({ onRefresh, loading, data }: CostOptimizationTabProps) {
-    // Mock data as fallback
-    const mockCostOptimizationData = {
-        summary: {
-            totalDays: 12,
-            avgCost: 1180,
-            totalProduction: 32,
-        },
-        products: [
-            {
-                id: "P1",
-                name: "Product 1",
-                formula: "F1",
-                ratios: { a: 28, b: 22, c: 28, d: 22 },
-                target_quantity: 10,
-                unit: "tons",
-            },
-            {
-                id: "P2",
-                name: "Product 2",
-                formula: "F4",
-                ratios: { a: 35, b: 15, c: 35, d: 15 },
-                target_quantity: 14,
-                unit: "tons",
-            },
-            {
-                id: "P3",
-                name: "Product 3",
-                formula: "F2",
-                ratios: { a: 40, b: 20, c: 25, d: 15 },
-                target_quantity: 8,
-                unit: "tons",
-            },
-        ],
-        productionPlan: [
-            { day: 1, product: "P1", quantity: 80, rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 } },
-            { day: 2, product: "P2", quantity: 100, rawMaterials: { A: 35, B: 15, C: 35, D: 15 } },
-            { day: 3, product: "P3", quantity: 75, rawMaterials: { A: 30, B: 15, C: 18.75, D: 11.25 } },
-            { day: 4, product: "P1", quantity: 90, rawMaterials: { A: 25.2, B: 19.8, C: 25.2, D: 19.8 } },
-            { day: 5, product: "P2", quantity: 85, rawMaterials: { A: 29.75, B: 12.75, C: 29.75, D: 12.75 } },
-        ],
-        inventoryData: [
-            { day: 1, inventory: 950, materialA: 240, materialB: 180, materialC: 200, materialD: 160 },
-            { day: 2, inventory: 850, materialA: 205, materialB: 165, materialC: 165, materialD: 145 },
-            { day: 3, inventory: 775, materialA: 175, materialB: 150, materialC: 146.25, materialD: 133.75 },
-            { day: 4, inventory: 685, materialA: 149.8, materialB: 130.2, materialC: 121.05, materialD: 113.95 },
-            { day: 5, inventory: 600, materialA: 120.05, materialB: 117.45, materialC: 91.3, materialD: 101.2 },
-        ],
+export default function OptimizationResultTab({ onRefresh, loading, data, type }: OptimizationResultTabProps) {
+    // Mock data สำหรับ fallback
+    const getMockData = () => {
+        if (type === 'time') {
+            return {
+                summary: {
+                    totalDays: 15,
+                    avgCost: 1250,
+                    totalProduction: 36,
+                    totalCost: 45000,
+                    successRate: 92.5,
+                    actualProduction: 34.2,
+                    avgCostPerTon: 1316,
+                    optimizationType: 'Genetic Algorithm',
+                    maxPossibleDays: 18,
+                    fitness: 0.8947,
+                    finalInventory: {
+                        pulp_a: 125.4,
+                        pulp_b: 89.2,
+                        pulp_c: 156.8
+                    }
+                },
+                products: [
+                    {
+                        id: "P1",
+                        name: "Product 1",
+                        type: "Dura Board",
+                        formula: "F1",
+                        ratios: { Pulp_A: 0.28, Pulp_B: 0.22, Pulp_C: 0.28, เยื่อกระดาษ: 0.22, Eucalyptus: 0 },
+                        target_quantity: 10,
+                        unit: "tons",
+                    },
+                    {
+                        id: "P2",
+                        name: "Product 2",
+                        type: "Smart Board",
+                        formula: "F4",
+                        ratios: { Pulp_A: 0.35, Pulp_B: 0.15, Pulp_C: 0.35, เยื่อกระดาษ: 0.15, Eucalyptus: 0 },
+                        target_quantity: 14,
+                        unit: "tons",
+                    },
+                ],
+                productionPlan: [
+                    { day: 1, product: "P1", formula: "F1", quantity: 80, target_quantity: 85, rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 } },
+                    { day: 2, product: "P2", formula: "F4", quantity: 100, target_quantity: 100, rawMaterials: { A: 35, B: 15, C: 35, D: 15 } },
+                ],
+                inventoryData: [
+                    { day: 1, date: "2025-01-01", inventory: 950, materialA: 240, materialB: 180, materialC: 200, materialD: 160, eucalyptus: 240, pulp_a: 180, pulp_b: 200, pulp_c: 160, deliveries: [] },
+                    { day: 2, date: "2025-01-02", inventory: 850, materialA: 205, materialB: 165, materialC: 165, materialD: 145, eucalyptus: 205, pulp_a: 165, pulp_b: 165, pulp_c: 145, deliveries: [] },
+                ],
+                dataPerDay: [
+                    { day: 1, cost_per_ton: 1250, cost: 25000, production_quantity: 20 },
+                    { day: 2, cost_per_ton: 1180, cost: 23600, production_quantity: 20 },
+                ]
+            }
+        } else {
+            return {
+                summary: {
+                    totalDays: 12,
+                    avgCost: 1180,
+                    totalProduction: 32,
+                    totalCost: 37760,
+                    successRate: 88.3,
+                    actualProduction: 28.3,
+                    avgCostPerTon: 1335,
+                    optimizationType: 'Cost Optimization',
+                    maxPossibleDays: 15,
+                    fitness: 0.9124,
+                    finalInventory: {
+                        pulp_a: 98.7,
+                        pulp_b: 112.4,
+                        pulp_c: 87.9
+                    }
+                },
+                products: [
+                    {
+                        id: "P1",
+                        name: "Product 1",
+                        type: "Dura Board",
+                        formula: "F1",
+                        ratios: { Pulp_A: 0.28, Pulp_B: 0.22, Pulp_C: 0.28, เยื่อกระดาษ: 0.22, Eucalyptus: 0 },
+                        target_quantity: 10,
+                        unit: "tons",
+                    },
+                    {
+                        id: "P2",
+                        name: "Product 2",
+                        type: "Smart Board",
+                        formula: "F4",
+                        ratios: { Pulp_A: 0.35, Pulp_B: 0.15, Pulp_C: 0.35, เยื่อกระดาษ: 0.15, Eucalyptus: 0 },
+                        target_quantity: 14,
+                        unit: "tons",
+                    },
+                ],
+                productionPlan: [
+                    { day: 1, product: "P1", formula: "F1", quantity: 80, target_quantity: 85, rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 } },
+                    { day: 2, product: "P2", formula: "F4", quantity: 100, target_quantity: 100, rawMaterials: { A: 35, B: 15, C: 35, D: 15 } },
+                ],
+                inventoryData: [
+                    { day: 1, date: "2025-01-01", inventory: 950, materialA: 240, materialB: 180, materialC: 200, materialD: 160, eucalyptus: 240, pulp_a: 180, pulp_b: 200, pulp_c: 160, deliveries: [] },
+                    { day: 2, date: "2025-01-02", inventory: 850, materialA: 205, materialB: 165, materialC: 165, materialD: 145, eucalyptus: 205, pulp_a: 165, pulp_b: 165, pulp_c: 145, deliveries: [] },
+                ],
+                dataPerDay: [
+                    { day: 1, cost_per_ton: 1180, cost: 23600, production_quantity: 20 },
+                    { day: 2, cost_per_ton: 1160, cost: 23200, production_quantity: 20 },
+                ]
+            }
+        }
     }
 
-    const currentData = data || mockCostOptimizationData
+    const currentData = data || getMockData()
+
+    // ส่วนที่แตกต่างกันตาม type
+    const getTitle = () => {
+        return type === 'time' 
+            ? "Time Optimization Summary - สรุปผลการปรับปรุงด้านเวลา"
+            : "Cost Optimization Summary - สรุปผลการปรับปรุงด้านต้นทุน"
+    }
+
+    const getDescription = () => {
+        return type === 'time'
+            ? "สรุปผลลัพธ์การปรับปรุงประสิทธิภาพด้านเวลา"
+            : "สรุปผลลัพธ์การปรับปรุงประสิทธิภาพด้านต้นทุน"
+    }
 
     // Process inventory data to extract delivery amounts by pulp type
     const processedInventoryData = currentData.inventoryData?.map((item: any) => {
@@ -454,8 +527,8 @@ export default function CostOptimizationTab({ onRefresh, loading, data }: CostOp
             {/* Summary Statistics */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Cost Optimization Summary - สรุปผลการปรับปรุงด้านต้นทุน</CardTitle>
-                    <CardDescription>สรุปผลลัพธ์การปรับปรุงประสิทธิภาพด้านต้นทุน</CardDescription>
+                    <CardTitle>{getTitle()}</CardTitle>
+                    <CardDescription>{getDescription()}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

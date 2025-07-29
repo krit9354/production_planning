@@ -47,6 +47,7 @@ interface CustomAdjustmentTabProps {
     loading: boolean;
     timeData?: any;
     costData?: any;
+    productsData?: any;
 }
 
 // ข้อมูลผลิตภัณฑ์จากรูป
@@ -178,6 +179,7 @@ export default function CustomAdjustmentTab({
     loading,
     timeData,
     costData,
+    productsData,
 }: CustomAdjustmentTabProps) {
     const [compareMode, setCompareMode] = useState<"time" | "cost">("time");
     const [customRatios, setCustomRatios] = useState<any[]>([]);

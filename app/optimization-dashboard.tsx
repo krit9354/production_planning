@@ -3,15 +3,17 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, DollarSign, Package, Settings } from "lucide-react"
-import TimeOptimizationTab from "@/components/TimeOptimizationTab"
-import CostOptimizationTab from "@/components/CostOptimizationTab"
+import { Clock, DollarSign, Package, Settings, Target } from "lucide-react"
+import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
+import ProductSelectionTab from "@/components/ProductSelectionTab"
 
 export default function OptimizationDashboard() {
   const [activeTab, setActiveTab] = useState("time")
   const [timeOptimizationData, setTimeOptimizationData] = useState<any>(null)
   const [costOptimizationData, setCostOptimizationData] = useState<any>(null)
+  const [productsData, setProductsData] = useState<any>(null)
+  const [customOptimizationData, setCustomOptimizationData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,11 +53,40 @@ export default function OptimizationDashboard() {
     }
   }
 
+  // Fetch products data from API
+  const fetchProductsData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await axios.get('http://localhost:8000/get_products')
+      console.log("Products Data:", response.data)
+      setProductsData(response.data)
+    } catch (err) {
+      setError('ไม่สามารถดึงข้อมูล products ได้')
+      console.error('Error fetching products data:', err)
+      // Fallback to mock data
+      setProductsData({
+        "p1": ["f1", "f2", "f3"],
+        "p2": ["f1", "f2"],
+        "p3": ["f1", "f2", "f3", "f4"],
+        "p4": ["f1", "f2", "f3", "f4", "f5"]
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Load data on component mount
   useEffect(() => {
     fetchTimeOptimizationData()
     fetchCostOptimizationData()
+    fetchProductsData()
   }, [])
+
+  // Debug data
+  useEffect(() => {
+    console.log('Dashboard data state:', { timeOptimizationData, costOptimizationData });
+  }, [timeOptimizationData, costOptimizationData]);
 
   // Loading state
   if (loading && !timeOptimizationData && !costOptimizationData) {
@@ -88,6 +119,8 @@ export default function OptimizationDashboard() {
                       fetchTimeOptimizationData()
                     } else if (activeTab === "cost") {
                       fetchCostOptimizationData()
+                    } else if (activeTab === "products") {
+                      fetchProductsData()
                     }
                   }}
                   className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 transition-colors"
@@ -103,7 +136,7 @@ export default function OptimizationDashboard() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="time" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Time Optimization
@@ -111,6 +144,10 @@ export default function OptimizationDashboard() {
               <TabsTrigger value="cost" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Cost Optimization
+              </TabsTrigger>
+              <TabsTrigger value="products" className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Product Selection
               </TabsTrigger>
               <TabsTrigger value="custom" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -158,32 +195,51 @@ export default function OptimizationDashboard() {
                 )}
               </button>
             )}
-{/*             
-            {activeTab === "custom" && (
+            
+            {activeTab === "products" && (
               <button
-                onClick={() => {}}
+                onClick={fetchProductsData}
                 disabled={loading}
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <Settings className="h-4 w-4" />
-                ปรับแต่งอัตราส่วน
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    กำลังโหลด...
+                  </>
+                ) : (
+                  <>
+                    <Target className="h-4 w-4" />
+                    รีเฟรชข้อมูล
+                  </>
+                )}
               </button>
-            )} */}
+            )}
           </div>
 
           <TabsContent value="time" className="space-y-6">
-            <TimeOptimizationTab 
+            <OptimizationResultTab 
               data={timeOptimizationData} 
               loading={loading} 
               onRefresh={fetchTimeOptimizationData}
+              type="time"
             />
           </TabsContent>
 
           <TabsContent value="cost" className="space-y-6">
-            <CostOptimizationTab 
+            <OptimizationResultTab 
               data={costOptimizationData} 
               loading={loading} 
               onRefresh={fetchCostOptimizationData}
+              type="cost"
+            />
+          </TabsContent>
+
+          <TabsContent value="products" className="space-y-6">
+            <ProductSelectionTab 
+              productsData={productsData}
+              loading={loading} 
+              onRefresh={fetchProductsData}
             />
           </TabsContent>
 
@@ -193,6 +249,7 @@ export default function OptimizationDashboard() {
               onRefresh={() => {}}
               timeData={timeOptimizationData}
               costData={costOptimizationData}
+              productsData={productsData}
             />
           </TabsContent>
         </Tabs>
