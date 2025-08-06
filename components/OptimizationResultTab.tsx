@@ -427,10 +427,10 @@ export default function OptimizationResultTab({
                         <TableBody>
                             {currentData.productionPlan?.map(
                                 (plan: any, index: number) => {
-                                    const achievementPercent = (
+                                    const achievementPercent = 
                                         (plan.quantity / plan.target_quantity) *
                                         100
-                                    ).toFixed(1);
+                                    
                                     return (
                                         <TableRow key={`${plan.date}-${index}`}>
                                             <TableCell className="font-medium">
@@ -465,18 +465,18 @@ export default function OptimizationResultTab({
                                                     plan.quantity ===
                                                     plan.target_quantity
                                                         ? "text-green-600"
-                                                        : plan.quantity === 0
+                                                        : plan.quantity <= 0
                                                         ? "text-red-600"
                                                         : "text-yellow-600"
                                                 }`}
                                             >
-                                                {plan.quantity?.toFixed(2)}
+                                                {plan.quantity > 0 ? plan.quantity?.toFixed(2): 0}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     <div
                                                         className={`flex-1 rounded-full h-2 ${
-                                                            plan.quantity === 0
+                                                            plan.quantity <= 0
                                                                 ? "bg-red-500"
                                                                 : "bg-gray-200"
                                                         }`}
@@ -486,12 +486,14 @@ export default function OptimizationResultTab({
                                                                 plan.quantity ===
                                                                 plan.target_quantity
                                                                     ? "bg-green-500"
+                                                                    : plan.quantity <= 0
+                                                                    ? "bg-red-500"
                                                                     : "bg-yellow-500"
                                                             }`}
                                                             style={{
                                                                 width: `${Math.min(
                                                                     parseFloat(
-                                                                        achievementPercent
+                                                                        achievementPercent.toFixed(1)
                                                                     ),
                                                                     100
                                                                 )}%`,
@@ -499,7 +501,7 @@ export default function OptimizationResultTab({
                                                         ></div>
                                                     </div>
                                                     <span className="text-xs font-medium">
-                                                        {achievementPercent}%
+                                                        {achievementPercent <= 0 ? 0 : achievementPercent.toFixed(1)}%
                                                     </span>
                                                 </div>
                                             </TableCell>
