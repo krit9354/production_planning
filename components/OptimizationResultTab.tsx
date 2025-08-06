@@ -211,15 +211,15 @@ export default function OptimizationResultTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Total Days
+                            ผลิตได้
                         </CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {currentData.summary?.totalDays?.toFixed(3) || 0}
+                            {currentData.summary?.totalDays?.toFixed(3) || 0} วัน
                         </div>
-                        <p className="text-xs text-muted-foreground">วัน</p>
+                        <p className="text-xs text-muted-foreground">จาก {currentData.summary?.maxPossibleDays?.toFixed(0) || 0} วัน</p>
                     </CardContent>
                 </Card>
 
@@ -243,16 +243,18 @@ export default function OptimizationResultTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Success Rate
+                            Cost per Ton
                         </CardTitle>
                         <TrendingDown className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {currentData.summary?.successRate?.toFixed(1) || 0}%
+                            ฿
+                                {currentData.summary?.avgCostPerTon?.toLocaleString() ||
+                                    0}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            อัตราความสำเร็จ
+                            บาท/ตัน
                         </p>
                     </CardContent>
                 </Card>
@@ -268,9 +270,9 @@ export default function OptimizationResultTab({
                         <div className="text-2xl font-bold">
                             {currentData.summary?.actualProduction?.toFixed(
                                 2
-                            ) || 0}
+                            ) || 0} ตัน
                         </div>
-                        <p className="text-xs text-muted-foreground">ตัน</p>
+                        <p className="text-xs text-muted-foreground">จาก {currentData.summary?.targetProduction?.toFixed(2) || 0} ตัน</p>
                     </CardContent>
                 </Card>
             </div>
@@ -321,7 +323,9 @@ export default function OptimizationResultTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {currentData.products?.map(
+                            {currentData.products
+                                ?.filter((product: any) => (product.target_quantity || 0) > 0)
+                                ?.map(
                                 (product: any, index: number) => (
                                     <TableRow
                                         key={product.name || index}
@@ -428,9 +432,9 @@ export default function OptimizationResultTab({
                                         100
                                     ).toFixed(1);
                                     return (
-                                        <TableRow key={`${plan.day}-${index}`}>
+                                        <TableRow key={`${plan.date}-${index}`}>
                                             <TableCell className="font-medium">
-                                                {plan.day}
+                                                {plan.date}
                                             </TableCell>
                                             <TableCell
                                                 className="max-w-xs truncate"
@@ -767,57 +771,7 @@ export default function OptimizationResultTab({
                     <CardTitle>Summary - สรุปผล</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">
-                                {currentData.summary?.totalDays?.toFixed(3) ||
-                                    0}
-                            </div>
-                            <div className="text-sm text-blue-600">
-                                วันในการผลิต
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">
-                                ฿
-                                {currentData.summary?.avgCostPerTon?.toLocaleString() ||
-                                    0}
-                            </div>
-                            <div className="text-sm text-green-600">
-                                ต้นทุนเฉลี่ย/ตัน
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-purple-50 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">
-                                {currentData.summary?.actualProduction?.toFixed(
-                                    2
-                                ) || 0}
-                            </div>
-                            <div className="text-sm text-purple-600">
-                                ผลิตจริง (ตัน)
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-orange-50 rounded-lg">
-                            <div className="text-2xl font-bold text-orange-600">
-                                {currentData.products?.length || 0}
-                            </div>
-                            <div className="text-sm text-orange-600">
-                                จำนวนผลิตภัณฑ์
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-red-50 rounded-lg">
-                            <div className="text-2xl font-bold text-red-600">
-                                {currentData.summary?.successRate?.toFixed(1) ||
-                                    0}
-                                %
-                            </div>
-                            <div className="text-sm text-red-600">
-                                อัตราความสำเร็จ
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className=" grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
                             <h4 className="font-semibold text-gray-700">
                                 Optimization Details
@@ -847,21 +801,28 @@ export default function OptimizationResultTab({
                             <div className="mt-2 space-y-1 text-sm text-gray-600">
                                 <p>
                                     Pulp A:{" "}
-                                    {currentData.summary?.finalInventory?.pulp_a?.toFixed(
+                                    {currentData.pulpInventoryFinal?.pulp_a?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน
                                 </p>
                                 <p>
                                     Pulp B:{" "}
-                                    {currentData.summary?.finalInventory?.pulp_b?.toFixed(
+                                    {currentData.pulpInventoryFinal?.pulp_b?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน
                                 </p>
                                 <p>
                                     Pulp C:{" "}
-                                    {currentData.summary?.finalInventory?.pulp_c?.toFixed(
+                                    {currentData.pulpInventoryFinal?.pulp_c?.toFixed(
+                                        2
+                                    ) || 0}{" "}
+                                    ตัน
+                                </p>
+                                <p>
+                                    Eucalyptus:{" "}
+                                    {currentData.pulpInventoryFinal?.eucalyptus?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน

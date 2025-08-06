@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Card,
     CardContent,
@@ -45,200 +46,102 @@ import axios from "axios";
 interface CustomAdjustmentTabProps {
     onRefresh: () => void;
     loading: boolean;
-    timeData?: any;
-    costData?: any;
-    productsData?: any;
 }
-
-// ข้อมูลผลิตภัณฑ์จากรูป
-const productFormulas = [
-    {
-        type: "Dura Board",
-        name: "Dura Board",
-        formula: "F02G",
-        originalRatios: {
-            pulp_a: 90.0,
-            pulp_b: 0.0,
-            pulp_c: 5.0,
-            eucalyptus: 7.6,
-        },
-        target: 1096.24,
-    },
-    {
-        type: "SCG Board",
-        name: "SB หนาต่ำกว่า 6 mm. ( < 6 mm.)...",
-        formula: "F01-3G",
-        originalRatios: {
-            pulp_a: 80.0,
-            pulp_b: 20.0,
-            pulp_c: 0.0,
-            eucalyptus: 7.6,
-        },
-        target: 132.01,
-    },
-    {
-        type: "SCG Board",
-        name: "SB หนาต่ำกว่า 6 mm. ( < 6 mm.)...",
-        formula: "F13-1",
-        originalRatios: {
-            pulp_a: 75.0,
-            pulp_b: 15.0,
-            pulp_c: 10.0,
-            eucalyptus: 7.6,
-        },
-        target: 763.48,
-    },
-    {
-        type: "SCG Board",
-        name: "SB หนาเกิน 6 mm. ( > 6 mm.) Si...",
-        formula: "F01",
-        originalRatios: {
-            pulp_a: 85.0,
-            pulp_b: 10.0,
-            pulp_c: 5.0,
-            eucalyptus: 8.2,
-        },
-        target: 603.29,
-    },
-    {
-        type: "SCG Board",
-        name: "SB หนาหกจันทรา 6 mm. ( = 6 mm.)...",
-        formula: "F01G",
-        originalRatios: {
-            pulp_a: 90.0,
-            pulp_b: 5.0,
-            pulp_c: 5.0,
-            eucalyptus: 8.2,
-        },
-        target: 899.29,
-    },
-    {
-        type: "SCG Wood",
-        name: "Wood others ไม่สังเคราะห์ ความ...",
-        formula: "F11",
-        originalRatios: {
-            pulp_a: 90.0,
-            pulp_b: 10.0,
-            pulp_c: 0.0,
-            eucalyptus: 7.6,
-        },
-        target: 744.27,
-    },
-    {
-        type: "SCG Wood",
-        name: "Wood others ไม่สังเคราะห์น...",
-        formula: "F09",
-        originalRatios: {
-            pulp_a: 75.0,
-            pulp_b: 20.0,
-            pulp_c: 5.0,
-            eucalyptus: 8.2,
-        },
-        target: 124.97,
-    },
-    {
-        type: "SCG Wood",
-        name: "ไม้ฝา ความยาวมากกว่า 310 cm....",
-        formula: "F09",
-        originalRatios: {
-            pulp_a: 75.0,
-            pulp_b: 20.0,
-            pulp_c: 5.0,
-            eucalyptus: 8.2,
-        },
-        target: 429.33,
-    },
-    {
-        type: "SCG Board",
-        name: "SB หนาหกจันทรา 6 mm. ( = 6 mm.)...",
-        formula: "F13-1",
-        originalRatios: {
-            pulp_a: 70.0,
-            pulp_b: 20.0,
-            pulp_c: 10.0,
-            eucalyptus: 7.6,
-        },
-        target: 863.11,
-    },
-    {
-        type: "SCG Wood",
-        name: "ไม้ฝา ความยาวไม่เกิน 310 cm....",
-        formula: "F12G",
-        originalRatios: {
-            pulp_a: 80.0,
-            pulp_b: 20.0,
-            pulp_c: 0.0,
-            eucalyptus: 5.5,
-        },
-        target: 228.61,
-    },
-];
 
 export default function CustomAdjustmentTab({
     onRefresh,
     loading,
-    timeData,
-    costData,
 }: CustomAdjustmentTabProps) {
-    const [compareMode, setCompareMode] = useState<"time" | "cost">("time");
     const [customRatios, setCustomRatios] = useState<any[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [originalResults, setOriginalResults] = useState<any>(null);
     const [customResults, setCustomResults] = useState<any>(null);
+    const [newScenarioName, setNewScenarioName] = useState<string>("");
 
-    // Initialize custom ratios from API data or fallback to product formulas
-    useEffect(() => {
-        console.log("Initializing customRatios with:", {
-            timeData,
-            costData,
-            compareMode,
-        });
+    // Scenario states
+    const [scenarios, setScenarios] = useState<string[]>([]);
+    const [selectedScenario, setSelectedScenario] = useState<string>("");
+    const [loadingScenarios, setLoadingScenarios] = useState(false);
 
-        // Get initial data based on current compareMode
-        const initialData = compareMode === "time" ? timeData : costData;
+    // Formula states
+    const [formulaData, setFormulaData] = useState<any>({});
+    const [loadingFormulas, setLoadingFormulas] = useState(false);
 
-        if (initialData?.products && Array.isArray(initialData.products)) {
-            // Use API data if available
-            setCustomRatios(initialData.products);
-        } else {
-            // Fallback to static data if no API data
-            const fallbackRatios = productFormulas.map((product, index) => ({
-                id: index,
-                ...product,
-                customRatios: { ...product.originalRatios },
-            }));
-            setCustomRatios(fallbackRatios);
+    // Create percentage options for dropdowns
+    const createPercentageOptions = (max: number) => {
+        const options = [];
+        for (let i = 0; i <= max; i += 5) {
+            options.push(i);
         }
-    }, [timeData, costData, compareMode]);
+        return options;
+    };
 
-    // Update original results when compareMode or data changes
-    useEffect(() => {
-        if (compareMode === "time" && timeData) {
-            setOriginalResults(timeData);
-        } else if (compareMode === "cost" && costData) {
-            setOriginalResults(costData);
-        } else {
-            console.log("No matching data found, clearing originalResults");
-            setOriginalResults(null);
+    // Create options for each pulp type
+    const pulpAOptions = createPercentageOptions(100); // 0-100
+    const pulpBOptions = createPercentageOptions(75);  // 0-75  
+    const pulpCOptions = createPercentageOptions(50);  // 0-50
+
+    // Fetch scenarios from API
+    const fetchScenarios = async () => {
+        setLoadingScenarios(true);
+        try {
+            const response = await axios.get('http://localhost:8000/get_scenarios');
+            if (response.data && Array.isArray(response.data)) {
+                setScenarios(response.data);
+                // Let user manually select scenario
+            }
+        } catch (error) {
+            console.error('Error fetching scenarios:', error);
+            setScenarios([]);
+        } finally {
+            setLoadingScenarios(false);
         }
-    }, [compareMode, timeData, costData]);
+    };
 
-    // Handle compare mode change
-    const handleCompareModeChange = (newMode: "time" | "cost") => {
-        console.log("Compare mode changed to:", newMode);
-        setCompareMode(newMode);
-        // Reset custom results when changing mode
-        setCustomResults(null);
+    // Fetch formula data from API
+    const fetchFormulaData = async () => {
+        setLoadingFormulas(true);
+        try {
+            const response = await axios.get('http://localhost:8000/get_formula');
+            if (response.data?.success && response.data?.data) {
+                setFormulaData(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching formula data:', error);
+            setFormulaData({});
+        } finally {
+            setLoadingFormulas(false);
+        }
+    };
 
-        // Set original results based on new mode
-        if (newMode === "time" && timeData) {
-            setOriginalResults(timeData);
-        } else if (newMode === "cost" && costData) {
-            setOriginalResults(costData);
-        } else {
+    // Load scenarios on component mount
+    useEffect(() => {
+        fetchScenarios();
+        fetchFormulaData();
+    }, []);
+
+    // Fetch scenario data from API
+    const fetchScenarioData = async (scenarioName: string) => {
+        if (!scenarioName) return;
+        
+        try {
+            const response = await axios.get(`http://localhost:8000/get_scenario/${scenarioName}`);
+            console.log('Full API Response:', response.data);
+            console.log('Products in response:', response.data?.products);
+            setOriginalResults(response.data);
+            setCustomRatios(response.data.products);
+        } catch (error) {
+            console.error("Error fetching scenario data:", error);
             setOriginalResults(null);
         }
     };
+
+    // Auto load scenario data when selected scenario changes
+    useEffect(() => {
+        if (selectedScenario) {
+            fetchScenarioData(selectedScenario);
+        }
+    }, [selectedScenario]);
 
     // Handle ratio input change
     const handleRatioChange = (
@@ -262,75 +165,82 @@ export default function CustomAdjustmentTab({
         );
     };
 
-    // Reset to original ratios (from API or fallback to static)
-    const resetToOriginal = () => {
-        console.log("Resetting to original ratios");
-
-        // Get current data based on compareMode
-        const currentData = compareMode === "time" ? timeData : costData;
-
-        if (currentData?.products && Array.isArray(currentData.products)) {
-            // Reset to API data
-            setCustomRatios((prev) =>
-                prev.map((product) => {
-                    const apiProduct = currentData.products.find(
-                        (p: any) =>
-                            p.formula === product.formula ||
-                            p.name === product.name
-                    );
-
-                    if (apiProduct?.ratios) {
-                        return {
-                            ...product,
-                            customRatios: { ...apiProduct.ratios },
-                        };
-                    }
-
-                    // Fallback to static original ratios
-                    return {
-                        ...product,
-                        customRatios: { ...product.originalRatios },
-                    };
-                })
-            );
-        } else {
-            // Fallback to static original ratios
-            setCustomRatios((prev) =>
-                prev.map((product) => ({
-                    ...product,
-                    customRatios: { ...product.originalRatios },
-                }))
-            );
-        }
+    // Handle formula change
+    const handleFormulaChange = (productId: number, newFormula: string) => {
+        setCustomRatios((prev) =>
+            prev.map((product, index) =>
+                index === productId
+                    ? {
+                          ...product,
+                          formula: newFormula,
+                      }
+                    : product
+            )
+        );
     };
 
     // Process optimization with custom ratios
     const processOptimization = async () => {
+        if (!newScenarioName.trim()) {
+            alert("กรุณาใส่ชื่อ Scenario ใหม่");
+            return;
+        }
+
+        // ตรวจสอบว่าทุก product มี status เป็น valid
+        const hasInvalidRatios = customRatios.some(product => !validateRatios(product));
+        
+        if (hasInvalidRatios) {
+            // สร้างรายการ products ที่ไม่ valid
+            const invalidProducts = customRatios.filter(product => !validateRatios(product));
+            const invalidList = invalidProducts.map(product => {
+                const sum = ((product.ratios?.Pulp_A || 0) + (product.ratios?.Pulp_B || 0) + (product.ratios?.Pulp_C || 0)) * 100;
+                return `- ${product.name}: ${sum.toFixed(1)}% (ต้องเป็น 100%)`;
+            }).join('\n');
+            
+            alert(`❌ ไม่สามารถประมวลผลได้ เนื่องจากมีผลิตภัณฑ์ที่อัตราส่วน Pulp A + B + C ไม่เท่ากับ 100%\n\nรายการที่ต้องแก้ไข:\n${invalidList}\n\nกรุณาแก้ไขอัตราส่วนให้ถูกต้องก่อนประมวลผล`);
+            return;
+        }
+
         setIsProcessing(true);
         try {
-            // Prepare data for API call
-            const optimizationData = {
-                mode: compareMode,
-                customRatios: customRatios.map((product) => ({
+            // Prepare data for API call with custom structure
+            const settings: { [key: string]: { formula: string; pulp_ratios: any } } = {};
+            
+            customRatios.forEach((product) => {
+                settings[product.name] = {
                     formula: product.formula,
-                    ratios: product.customRatios,
-                    target: product.target,
-                })),
+                    pulp_ratios: {
+                        Pulp_A: product.ratios?.Pulp_A || 0,
+                        Pulp_B: product.ratios?.Pulp_B || 0,
+                        Pulp_C: product.ratios?.Pulp_C || 0,
+                        Eucalyptus: product.ratios?.Eucalyptus || 0
+                    }
+                };
+            });
+
+            const optimizationData = {
+                settings: settings,
+                scenario_name: newScenarioName.trim(),
+                description: `Custom adjustment from ${selectedScenario}`
             };
 
-            // Call API (replace with your actual endpoint)
-            const response = await axios.get(`http://localhost:8000/cost`, {
-                params: optimizationData,
-            });
-            setCustomResults(response.data);
-
-            // Also get original results for comparison
-            const originalResponse = await axios.get(
-                `http://localhost:8000/${compareMode}`
-            );
-            setOriginalResults(originalResponse.data);
+            // Call the evaluate_custom_individual API endpoint
+            const response = await axios.post("http://localhost:8000/evaluate_custom_individual", optimizationData);
+            
+            if (response.data.success) {
+                setCustomResults(response.data.json_result);
+                // รีเฟรช scenarios list
+                await fetchScenarios();
+                // alert(`✅ สร้าง Scenario "${newScenarioName}" สำเร็จ!`);
+                // เคลียร์ชื่อ scenario
+                setNewScenarioName("");
+                onRefresh();
+            } else {
+                alert(`❌ เกิดข้อผิดพลาด: ${response.data.message}`);
+            }
         } catch (error) {
             console.error("Error processing optimization:", error);
+            alert("เกิดข้อผิดพลาดในการประมวลผล");
         } finally {
             setIsProcessing(false);
         }
@@ -435,75 +345,100 @@ export default function CustomAdjustmentTab({
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between">
+                    <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm font-medium">
-                                    เปรียบเทียบกับ:
-                                </label>
-                                <select
-                                    value={compareMode}
-                                    onChange={(e) =>
-                                        handleCompareModeChange(
-                                            e.target.value as "time" | "cost"
-                                        )
-                                    }
-                                    className="w-40 h-10 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="time">
-                                        Time Optimization
-                                    </option>
-                                    <option value="cost">
-                                        Cost Optimization
-                                    </option>
-                                </select>
-                            </div>
+                            <label className="text-sm font-medium">
+                                เลือก Scenario:
+                            </label>
+                            <Select
+                                value={selectedScenario}
+                                onValueChange={setSelectedScenario}
+                                disabled={loadingScenarios}
+                            >
+                                <SelectTrigger className="max-w-[30%]">
+                                    <SelectValue placeholder={loadingScenarios ? "กำลังโหลด..." : "-- เลือก Scenario --"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {scenarios.map((scenario, index) => (
+                                        <SelectItem key={`custom-scenario-${index}-${scenario}`} value={scenario}>
+                                            {scenario}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={resetToOriginal}
-                                className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <RotateCcw className="h-4 w-4" />
-                                Reset เป็นค่าเริ่มต้น
-                            </button>
-                            <button
-                                onClick={processOptimization}
-                                disabled={isProcessing}
-                                className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        กำลังประมวลผล...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Play className="h-4 w-4" />
-                                        ประมวลผล
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        {/* Row 2: New Scenario Name and Process Button */}
+                        {selectedScenario && (
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-sm font-medium">
+                                        ชื่อ Scenario ใหม่:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newScenarioName}
+                                        onChange={(e) => setNewScenarioName(e.target.value)}
+                                        placeholder="ใส่ชื่อ scenario ใหม่..."
+                                        className="w-64 h-10 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        disabled={isProcessing}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={processOptimization}
+                                        disabled={isProcessing || !newScenarioName.trim()}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                กำลังประมวลผล...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play className="h-4 w-4" />
+                                                ประมวลผลและบันทึก
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Custom Ratios Input Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Factory className="h-6 w-6" />
-                        Adjust Material Ratios - ปรับแต่งอัตราส่วนวัตถุดิบ
-                    </CardTitle>
-                    <CardDescription>
-                        แก้ไขอัตราส่วนวัตถุดิบของแต่ละผลิตภัณฑ์ (Pulp A + Pulp B
-                        + Pulp C ต้องรวมเป็น 100%)
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
+            {/* Show message when no scenario is selected */}
+            {!selectedScenario && !loadingScenarios && (
+                <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">เลือก Scenario เพื่อดูข้อมูล</h3>
+                            <p className="text-gray-600">กรุณาเลือก scenario จาก dropdown ด้านบนเพื่อแสดงข้อมูลการวิเคราะห์</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Custom Ratios Input Table - Only show when scenario is selected */}
+            {selectedScenario && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Factory className="h-6 w-6" />
+                            Adjust Material Ratios - ปรับแต่งอัตราส่วนวัตถุดิบ
+                        </CardTitle>
+                        <CardDescription>
+                            แก้ไขสูตรและอัตราส่วนวัตถุดิบของแต่ละผลิตภัณฑ์ (Pulp A + Pulp B + Pulp C ต้องรวมเป็น 100%)
+                            <br />
+                            <strong>แถวที่ 1:</strong> ค่าเดิมจาก scenario ที่เลือก | <strong>แถวที่ 2:</strong> ปรับแต่งสูตรและอัตราส่วน
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-center font-semibold">
@@ -572,7 +507,6 @@ export default function CustomAdjustmentTab({
                                             <TableCell
                                                 className="text-center"
                                                 style={{ borderBottom: "none" }}
-                                                rowSpan={2}
                                             >
                                                 <Badge
                                                     variant="outline"
@@ -582,7 +516,7 @@ export default function CustomAdjustmentTab({
                                                 </Badge>
                                             </TableCell>
                                             <TableCell
-                                                className="text-center text-gray-600 text-sm bg-gray-50"
+                                                className="text-center text-gray-600 text-sm"
                                                 style={{ borderBottom: "none" }}
                                             >
                                                 {(
@@ -590,14 +524,9 @@ export default function CustomAdjustmentTab({
                                                         0) * 100
                                                 )?.toFixed(1) || "N/A"}
                                                 %
-                                                <div className="text-xs text-gray-500">
-                                                    {compareMode === "time"
-                                                        ? "Time Opt"
-                                                        : "Cost Opt"}
-                                                </div>
                                             </TableCell>
                                             <TableCell
-                                                className="text-center text-gray-600 text-sm bg-gray-50"
+                                                className="text-center text-gray-600 text-sm"
                                                 style={{ borderBottom: "none" }}
                                             >
                                                 {(
@@ -605,14 +534,9 @@ export default function CustomAdjustmentTab({
                                                         0) * 100
                                                 )?.toFixed(1) || "N/A"}
                                                 %
-                                                <div className="text-xs text-gray-500">
-                                                    {compareMode === "time"
-                                                        ? "Time Opt"
-                                                        : "Cost Opt"}
-                                                </div>
                                             </TableCell>
                                             <TableCell
-                                                className="text-center text-gray-600 text-sm bg-gray-50"
+                                                className="text-center text-gray-600 text-sm"
                                                 style={{ borderBottom: "none" }}
                                             >
                                                 {(
@@ -620,26 +544,17 @@ export default function CustomAdjustmentTab({
                                                         0) * 100
                                                 )?.toFixed(1) || "N/A"}
                                                 %
-                                                <div className="text-xs text-gray-500">
-                                                    {compareMode === "time"
-                                                        ? "Time Opt"
-                                                        : "Cost Opt"}
-                                                </div>
                                             </TableCell>
                                             <TableCell
-                                                className="text-center text-gray-600 text-sm bg-gray-50"
+                                                className="text-center text-gray-600 text-sm"
                                                 style={{ borderBottom: "none" }}
+                                                rowSpan={2}
                                             >
                                                 {(
                                                     (originalRatios.Eucalyptus ||
                                                         0) * 100
                                                 )?.toFixed(1) || "N/A"}
                                                 %
-                                                <div className="text-xs text-gray-500">
-                                                    {compareMode === "time"
-                                                        ? "Time Opt"
-                                                        : "Cost Opt"}
-                                                </div>
                                             </TableCell>
                                             <TableCell
                                                 className="text-center font-bold text-green-600"
@@ -673,99 +588,85 @@ export default function CustomAdjustmentTab({
                                             </TableCell>
                                         </TableRow>
 
-                                        {/* Input Row */}
+                                        {/* Custom Input Row */}
                                         <TableRow
                                             key={`${index}-input`}
                                             className="hover:bg-gray-50"
                                         >
                                             <TableCell className="text-center">
-                                                <input
-                                                    type="number"
-                                                    value={(
-                                                        (product.ratios
-                                                            ?.Pulp_A || 0) * 100
-                                                    ).toFixed(1)}
-                                                    onChange={(
-                                                        e: React.ChangeEvent<HTMLInputElement>
-                                                    ) =>
-                                                        handleRatioChange(
-                                                            index,
-                                                            "Pulp_A",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-20 text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="100"
-                                                />
+                                                <Select
+                                                    value={product.formula}
+                                                    onValueChange={(value) => handleFormulaChange(index, value)}
+                                                    disabled={loadingFormulas}
+                                                >
+                                                    <SelectTrigger className="w-24 h-8 text-xs">
+                                                        <SelectValue placeholder="เลือก" className="text-xs" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {product.name && formulaData[product.name] ? 
+                                                            formulaData[product.name].map((formula: string, formulaIndex: number) => (
+                                                                <SelectItem key={`${index}-${formulaIndex}-${formula}`} value={formula} className="text-xs">
+                                                                    {formula}
+                                                                </SelectItem>
+                                                            )) : (
+                                                                <SelectItem value="no-data" disabled className="text-xs">
+                                                                    ไม่มีข้อมูล
+                                                                </SelectItem>
+                                                            )
+                                                        }
+                                                    </SelectContent>
+                                                </Select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <input
-                                                    type="number"
-                                                    value={(
-                                                        (product.ratios
-                                                            ?.Pulp_B || 0) * 100
-                                                    ).toFixed(1)}
-                                                    onChange={(
-                                                        e: React.ChangeEvent<HTMLInputElement>
-                                                    ) =>
-                                                        handleRatioChange(
-                                                            index,
-                                                            "Pulp_B",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-20 text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="100"
-                                                />
+                                                <Select
+                                                    value={((product.ratios?.Pulp_A || 0) * 100).toString()}
+                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_A", value)}
+                                                >
+                                                    <SelectTrigger className="w-20 h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {pulpAOptions.map((option) => (
+                                                            <SelectItem key={`pulp-a-${index}-${option}`} value={option.toString()} className="text-xs">
+                                                                {option}%
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <input
-                                                    type="number"
-                                                    value={(
-                                                        (product.ratios
-                                                            ?.Pulp_C || 0) * 100
-                                                    ).toFixed(1)}
-                                                    onChange={(
-                                                        e: React.ChangeEvent<HTMLInputElement>
-                                                    ) =>
-                                                        handleRatioChange(
-                                                            index,
-                                                            "Pulp_C",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-20 text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="100"
-                                                />
+                                                <Select
+                                                    value={((product.ratios?.Pulp_B || 0) * 100).toString()}
+                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_B", value)}
+                                                >
+                                                    <SelectTrigger className="w-20 h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {pulpBOptions.map((option) => (
+                                                            <SelectItem key={`pulp-b-${index}-${option}`} value={option.toString()} className="text-xs">
+                                                                {option}%
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <input
-                                                    type="number"
-                                                    value={(
-                                                        (product.ratios
-                                                            ?.Eucalyptus || 0) *
-                                                        100
-                                                    ).toFixed(1)}
-                                                    onChange={(
-                                                        e: React.ChangeEvent<HTMLInputElement>
-                                                    ) =>
-                                                        handleRatioChange(
-                                                            index,
-                                                            "Eucalyptus",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-20 text-center px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="50"
-                                                />
+                                                <Select
+                                                    value={((product.ratios?.Pulp_C || 0) * 100).toString()}
+                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_C", value)}
+                                                >
+                                                    <SelectTrigger className="w-20 h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {pulpCOptions.map((option) => (
+                                                            <SelectItem key={`pulp-c-${index}-${option}`} value={option.toString()} className="text-xs">
+                                                                {option}%
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </TableCell>
                                         </TableRow>
                                     </React.Fragment>
@@ -775,6 +676,7 @@ export default function CustomAdjustmentTab({
                     </Table>
                 </CardContent>
             </Card>
+            )}
 
             {/* Results Comparison */}
             {originalResults && customResults && (
@@ -784,9 +686,7 @@ export default function CustomAdjustmentTab({
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <TrendingDown className="h-5 w-5" />
-                                Original{" "}
-                                {compareMode === "time" ? "Time" : "Cost"}{" "}
-                                Optimization
+                                Original Optimization
                             </CardTitle>
                             <CardDescription>ผลลัพธ์แบบเดิม</CardDescription>
                         </CardHeader>
@@ -798,10 +698,10 @@ export default function CustomAdjustmentTab({
                                         <div className="text-lg font-bold text-blue-600">
                                             {originalResults.summary?.totalDays?.toFixed(
                                                 2
-                                            ) || 0}
+                                            ) || 0} วัน
                                         </div>
                                         <div className="text-xs text-blue-600">
-                                            วัน
+                                            จาก {originalResults.summary?.maxPossibleDays?.toFixed(0) || 0} วัน
                                         </div>
                                     </div>
                                     <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -821,7 +721,7 @@ export default function CustomAdjustmentTab({
                                             ) || 0}
                                         </div>
                                         <div className="text-xs text-purple-600">
-                                            ผลิตจริง (ตัน)
+                                            ผลิตจริง (ตัน) จาก {originalResults.summary?.targetProduction?.toFixed(1) || 0} ตัน
                                         </div>
                                     </div>
                                     <div className="text-center p-3 bg-red-50 rounded-lg">
@@ -859,10 +759,10 @@ export default function CustomAdjustmentTab({
                                         <div className="text-lg font-bold text-blue-600">
                                             {customResults.summary?.totalDays?.toFixed(
                                                 2
-                                            ) || 0}
+                                            ) || 0} วัน
                                         </div>
                                         <div className="text-xs text-blue-600">
-                                            วัน
+                                            จาก {customResults.summary?.maxPossibleDays?.toFixed(0) || 0} วัน
                                         </div>
                                     </div>
                                     <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -882,7 +782,7 @@ export default function CustomAdjustmentTab({
                                             ) || 0}
                                         </div>
                                         <div className="text-xs text-purple-600">
-                                            ผลิตจริง (ตัน)
+                                            ผลิตจริง (ตัน) จาก {customResults.summary?.targetProduction?.toFixed(1) || 0} ตัน
                                         </div>
                                     </div>
                                     <div className="text-center p-3 bg-red-50 rounded-lg">

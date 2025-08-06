@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, Play, RefreshCw } from "lucide-react"
 import OptimizationResultTab from "./OptimizationResultTab"
@@ -14,10 +16,12 @@ interface ProductSelectionTabProps {
 }
 
 export default function ProductSelectionTab({ productsData, loading, onRefresh }: ProductSelectionTabProps) {
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(Object.keys(productsData || {}))
+  const [scenarioName, setScenarioName] = useState<string>("")
   const [optimizationData, setOptimizationData] = useState<any>(null)
   const [optimizing, setOptimizing] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Toggle product selection
   const toggleProduct = (productId: string) => {
@@ -40,48 +44,61 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
     setSelectedProducts([])
   }
 
-  // Mock optimization function
+  // API optimization function
   const runOptimization = async () => {
     if (selectedProducts.length === 0) {
       alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ')
       return
     }
 
-    setOptimizing(true)
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Mock optimization results based on selected products
-    const mockResults = {
-      selected_products: selectedProducts,
-      optimization_results: {
-        total_time: selectedProducts.length * 8.5,
-        total_cost: selectedProducts.length * 12500,
-        efficiency: Math.round(85 + Math.random() * 10),
-        schedule: selectedProducts.map((product, index) => ({
-          product_id: product,
-          start_time: index * 8,
-          duration: 8,
-          formulation: `f${index + 1}`
-        }))
-      },
-      summary: {
-        products_optimized: selectedProducts.length,
-        time_saved: selectedProducts.length * 1.2,
-        cost_saved: selectedProducts.length * 850
-      }
+    if (!scenarioName.trim()) {
+      alert('กรุณาใส่ชื่อ Scenario')
+      return
     }
+
+    setOptimizing(true)
+    setError(null)
     
-    setOptimizationData(mockResults)
-    setOptimizing(false)
-    setShowResults(true)
+    try {
+      console.log('🚀 Starting optimization with selected products:', selectedProducts)
+      console.log('📝 Scenario name:', scenarioName)
+
+      const requestBody = {
+        selected_products: selectedProducts,
+        scenario_name: scenarioName.trim(),
+      }
+
+      console.log('📤 Request body:', requestBody)
+
+      const response = await axios.post('http://localhost:8000/run_genetic_algorithm', requestBody, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      console.log('✅ API Response:', response.data)
+
+      if (response.data.success) {
+        setOptimizationData(response.data.json_result);
+        setShowResults(true)
+      } else {
+        throw new Error(response.data.message || 'Optimization failed')
+      }
+    } catch (error: any) {
+      console.error('❌ Optimization error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการปรับปรุงประสิทธิภาพ'
+      setError(errorMessage)
+      alert(`เกิดข้อผิดพลาด: ${errorMessage}`)
+    } finally {
+      setOptimizing(false)
+    }
   }
 
   // Reset to product selection view
   const backToSelection = () => {
     setShowResults(false)
     setOptimizationData(null)
+    setError(null)
   }
 
   if (loading && !productsData) {
@@ -106,7 +123,7 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
               <div>
                 <CardTitle className="text-xl text-purple-700">ผลการปรับปรุงประสิทธิภาพ - สินค้าที่เลือก</CardTitle>
                 <CardDescription>
-                  แสดงผลการปรับปรุงสำหรับสินค้า: {selectedProducts.join(', ')}
+                  Scenario: <strong>{optimizationData.scenario_name}</strong> | สินค้าที่เลือก: {selectedProducts.join(', ')}
                 </CardDescription>
               </div>
               <Button onClick={backToSelection} variant="outline" className="flex items-center gap-2">
@@ -143,6 +160,31 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
       {/* Selection Controls */}
       <Card>
         <CardContent className="pt-6">
+          {/* Scenario Name Input */}
+          <div className="mb-6">
+            <label htmlFor="scenario-name" className="block text-sm font-medium mb-2">
+              ชื่อ Scenario <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="scenario-name"
+              type="text"
+              placeholder="ใส่ชื่อ scenario เช่น test_selective_optimization"
+              value={scenarioName}
+              onChange={(e) => setScenarioName(e.target.value)}
+              className="max-w-md"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              ชื่อ scenario จะใช้เป็นชื่อไฟล์ผลลัพธ์ที่บันทึก
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <Button onClick={selectAll} variant="outline" size="sm">
@@ -157,7 +199,7 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             </div>
             <Button 
               onClick={runOptimization}
-              disabled={selectedProducts.length === 0 || optimizing}
+              disabled={selectedProducts.length === 0 || optimizing || !scenarioName.trim()}
               className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
             >
               {optimizing ? (
@@ -236,10 +278,11 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
         <CardContent className="pt-6">
           <h3 className="font-semibold mb-2">วิธีการใช้งาน:</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>1. เลือกสินค้าที่ต้องการปรับปรุงประสิทธิภาพโดยคลิกที่การ์ดสินค้า</li>
-            <li>2. สินค้าที่เลือกจะแสดงด้วยสีม่วงและมีเครื่องหมายถูก</li>
-            <li>3. คลิก "เริ่มปรับปรุงประสิทธิภาพ" เพื่อเริ่มการคำนวณ</li>
-            <li>4. ผลลัพธ์จะแสดงในรูปแบบเดียวกับหน้า Time Optimization</li>
+            <li>1. ใส่ชื่อ Scenario ที่ต้องการ (จำเป็น)</li>
+            <li>2. เลือกสินค้าที่ต้องการปรับปรุงประสิทธิภาพโดยคลิกที่การ์ดสินค้า</li>
+            <li>3. สินค้าที่เลือกจะแสดงด้วยสีม่วงและมีเครื่องหมายถูก</li>
+            <li>4. คลิก "เริ่มปรับปรุงประสิทธิภาพ" เพื่อเรียก API และเริ่มการคำนวณ</li>
+            <li>5. ผลลัพธ์จะถูกบันทึกเป็นไฟล์ JSON และแสดงผลลัพธ์การปรับปรุง</li>
           </ul>
         </CardContent>
       </Card>
