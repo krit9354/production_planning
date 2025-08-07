@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, Play, RefreshCw } from "lucide-react"
 import OptimizationResultTab from "./OptimizationResultTab"
+import { apiEndpoints } from "@/lib/api"
 
 interface ProductSelectionTabProps {
   productsData: any
@@ -16,27 +17,38 @@ interface ProductSelectionTabProps {
 }
 
 export default function ProductSelectionTab({ productsData, loading, onRefresh }: ProductSelectionTabProps) {
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(Object.keys(productsData || {}))
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [scenarioName, setScenarioName] = useState<string>("")
   const [optimizationData, setOptimizationData] = useState<any>(null)
   const [optimizing, setOptimizing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Toggle product selection
-  const toggleProduct = (productId: string) => {
+  // Get all available product groups from the new data structure
+  const getAllProductGroups = () => {
+    if (!productsData) return []
+    const productGroups: string[] = []
+    Object.keys(productsData).forEach(productType => {
+      Object.keys(productsData[productType]).forEach(productGroup => {
+        const productGroupKey = `${productType}|${productGroup}`
+        productGroups.push(productGroupKey)
+      })
+    })
+    return productGroups
+  }
+
+  // Toggle product group selection
+  const toggleProduct = (productGroupKey: string) => {
     setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+      prev.includes(productGroupKey) 
+        ? prev.filter(id => id !== productGroupKey)
+        : [...prev, productGroupKey]
     )
   }
 
-  // Select all products
+  // Select all product groups
   const selectAll = () => {
-    if (productsData) {
-      setSelectedProducts(Object.keys(productsData))
-    }
+    setSelectedProducts(getAllProductGroups())
   }
 
   // Clear all selections
@@ -70,7 +82,7 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
 
       console.log('📤 Request body:', requestBody)
 
-      const response = await axios.post('http://localhost:8000/run_genetic_algorithm', requestBody, {
+      const response = await axios.post(apiEndpoints.runGeneticAlgorithm(), requestBody, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -123,7 +135,7 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
               <div>
                 <CardTitle className="text-xl text-purple-700">ผลการปรับปรุงประสิทธิภาพ - สินค้าที่เลือก</CardTitle>
                 <CardDescription>
-                  Scenario: <strong>{optimizationData.scenario_name}</strong> | สินค้าที่เลือก: {selectedProducts.join(', ')}
+                  Scenario: <strong>{optimizationData.scenario_name}</strong> | Product Groups ที่เลือก: {selectedProducts.length} กลุ่ม
                 </CardDescription>
               </div>
               <Button onClick={backToSelection} variant="outline" className="flex items-center gap-2">
@@ -150,9 +162,9 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl text-purple-700">เลือกสินค้าสำหรับการปรับปรุงประสิทธิภาพ</CardTitle>
+          <CardTitle className="text-xl text-purple-700">เลือก Product Groups สำหรับการปรับปรุงประสิทธิภาพ</CardTitle>
           <CardDescription>
-            เลือกสินค้าที่ต้องการนำไปทำการปรับปรุงประสิทธิภาพการผลิต
+            เลือก Product Groups ที่ต้องการนำไปทำการปรับปรุงประสิทธิภาพการผลิต แยกตามประเภทสินค้า
           </CardDescription>
         </CardHeader>
       </Card>
@@ -216,55 +228,75 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             </Button>
           </div>
 
-          {/* Products Grid */}
+          {/* Products Grid - Grouped by Type */}
           {productsData ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Object.keys(productsData).map((productId) => {
-                const isSelected = selectedProducts.includes(productId)
-                return (
-                  <div
-                    key={productId}
-                    onClick={() => toggleProduct(productId)}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
-                      isSelected 
-                        ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 hover:border-purple-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg">{productId.toUpperCase()}</h3>
-                        <p className="text-sm text-gray-600">
-                          {productsData[productId].length} formulations
-                        </p>
-                      </div>
-                      {isSelected ? (
-                        <CheckCircle className="h-6 w-6 text-purple-600" />
-                      ) : (
-                        <Circle className="h-6 w-6 text-gray-400" />
-                      )}
-                    </div>
-                    
-                    {/* Show formulations as badges */}
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {productsData[productId].slice(0, 3).map((formulation: string) => (
-                        <Badge key={formulation} variant="outline" className="text-xs">
-                          {formulation}
-                        </Badge>
-                      ))}
-                      {productsData[productId].length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{productsData[productId].length - 3}
-                        </Badge>
-                      )}
-                    </div>
+            <div className="space-y-8">
+              {Object.keys(productsData).map((productType) => (
+                <div key={productType} className="space-y-4">
+                  {/* Product Type Header */}
+                  <div className="border-b-2 border-purple-200 pb-2">
+                    <h2 className="text-xl font-bold text-purple-800">{productType}</h2>
+                    <p className="text-sm text-gray-600">
+                      {Object.keys(productsData[productType]).length} Product Groups
+                    </p>
                   </div>
-                )
-              })}
+                  
+                  {/* Product Groups Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {Object.keys(productsData[productType]).map((productGroupName) => {
+                      const formulas = productsData[productType][productGroupName]
+                      const productGroupKey = `${productType}|${productGroupName}`
+                      const isSelected = selectedProducts.includes(productGroupKey)
+                      
+                      return (
+                        <div
+                          key={`${productType}-${productGroupName}`}
+                          onClick={() => toggleProduct(productGroupKey)}
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+                            isSelected 
+                              ? 'border-purple-500 bg-purple-50' 
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-sm leading-tight mb-1">
+                                {productGroupName}
+                              </h3>
+                              <p className="text-xs text-gray-600">
+                                {formulas.length} formulas
+                              </p>
+                            </div>
+                            {isSelected ? (
+                              <CheckCircle className="h-5 w-5 text-purple-600 flex-shrink-0 ml-2" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+                            )}
+                          </div>
+                          
+                          {/* Show formulations as badges */}
+                          <div className="flex flex-wrap gap-1">
+                            {formulas.slice(0, 3).map((formula: string) => (
+                              <Badge key={formula} variant="outline" className="text-xs">
+                                {formula}
+                              </Badge>
+                            ))}
+                            {formulas.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{formulas.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center p-8">
-              <p className="text-gray-500">ไม่พบข้อมูลสินค้า</p>
+              <p className="text-gray-500">ไม่พบข้อมูล Product Groups</p>
               <Button onClick={onRefresh} variant="outline" className="mt-4">
                 โหลดข้อมูลใหม่
               </Button>

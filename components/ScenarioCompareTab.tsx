@@ -665,29 +665,6 @@ export default function ScenarioCompareTab({
                                 </div>
                             </div>
                         </div>
-
-                        {/* Recommendation */}
-                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <h4 className="font-semibold text-gray-700 mb-2">คำแนะนำ</h4>
-                            <div className="text-sm text-gray-600">
-                                {(() => {
-                                    const s1 = scenario1Data.summary;
-                                    const s2 = scenario2Data.summary;
-                                    
-                                    if (s1.avgCostPerTon < s2.avgCostPerTon && s1.actualProduction > s2.actualProduction) {
-                                        return `🎯 ${selectedScenario1} มีประสิทธิภาพดีกว่า - ต้นทุนต่ำกว่าและผลิตได้มากกว่า`;
-                                    } else if (s2.avgCostPerTon < s1.avgCostPerTon && s2.actualProduction > s1.actualProduction) {
-                                        return `🎯 ${selectedScenario2} มีประสิทธิภาพดีกว่า - ต้นทุนต่ำกว่าและผลิตได้มากกว่า`;
-                                    } else if (s1.totalDays < s2.totalDays) {
-                                        return `⚡ ${selectedScenario1} เร็วกว่า - ใช้เวลาน้อยกว่า ${(s2.totalDays - s1.totalDays).toFixed(1)} วัน`;
-                                    } else if (s2.totalDays < s1.totalDays) {
-                                        return `⚡ ${selectedScenario2} เร็วกว่า - ใช้เวลาน้อยกว่า ${(s1.totalDays - s2.totalDays).toFixed(1)} วัน`;
-                                    } else {
-                                        return "🤔 ทั้งสอง scenario มีข้อดีข้อเสียแตกต่างกัน ควรพิจารณาตามเป้าหมายของธุรกิจ";
-                                    }
-                                })()}
-                            </div>
-                        </div>
                     </CardContent>
                 </Card>
             )}

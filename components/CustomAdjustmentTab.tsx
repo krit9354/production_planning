@@ -42,6 +42,7 @@ import {
     ArrowRight,
 } from "lucide-react";
 import axios from "axios";
+import { apiEndpoints } from "@/lib/api";
 
 interface CustomAdjustmentTabProps {
     onRefresh: () => void;
@@ -85,7 +86,7 @@ export default function CustomAdjustmentTab({
     const fetchScenarios = async () => {
         setLoadingScenarios(true);
         try {
-            const response = await axios.get('http://localhost:8000/get_scenarios');
+            const response = await axios.get(apiEndpoints.getScenarios());
             if (response.data && Array.isArray(response.data)) {
                 setScenarios(response.data);
                 // Let user manually select scenario
@@ -102,7 +103,7 @@ export default function CustomAdjustmentTab({
     const fetchFormulaData = async () => {
         setLoadingFormulas(true);
         try {
-            const response = await axios.get('http://localhost:8000/get_formula');
+            const response = await axios.get(apiEndpoints.getFormula());
             if (response.data?.success && response.data?.data) {
                 setFormulaData(response.data.data);
             }
@@ -125,7 +126,7 @@ export default function CustomAdjustmentTab({
         if (!scenarioName) return;
         
         try {
-            const response = await axios.get(`http://localhost:8000/get_scenario/${scenarioName}`);
+            const response = await axios.get(apiEndpoints.getScenario(scenarioName));
             console.log('Full API Response:', response.data);
             console.log('Products in response:', response.data?.products);
             setOriginalResults(response.data);
@@ -207,7 +208,7 @@ export default function CustomAdjustmentTab({
             const settings: { [key: string]: { formula: string; pulp_ratios: any } } = {};
             
             customRatios.forEach((product) => {
-                settings[product.name] = {
+                settings[`${product.type}|${product.name}`] = {
                     formula: product.formula,
                     pulp_ratios: {
                         Pulp_A: product.ratios?.Pulp_A || 0,
@@ -603,8 +604,8 @@ export default function CustomAdjustmentTab({
                                                         <SelectValue placeholder="เลือก" className="text-xs" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {product.name && formulaData[product.name] ? 
-                                                            formulaData[product.name].map((formula: string, formulaIndex: number) => (
+                                                        {product.name && formulaData[product.type][product.name] ? 
+                                                            formulaData[product.type][product.name].map((formula: string, formulaIndex: number) => (
                                                                 <SelectItem key={`${index}-${formulaIndex}-${formula}`} value={formula} className="text-xs">
                                                                     {formula}
                                                                 </SelectItem>

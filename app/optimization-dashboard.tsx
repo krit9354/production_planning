@@ -11,6 +11,7 @@ import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
 import ProductSelectionTab from "@/components/ProductSelectionTab"
 import ScenarioCompareTab from "@/components/ScenarioCompareTab"
+import { apiEndpoints } from "@/lib/api"
 
 export default function OptimizationDashboard() {
   const [activeTab, setActiveTab] = useState("original")
@@ -31,7 +32,7 @@ export default function OptimizationDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const response = await axios.get('http://localhost:8000/time')
+      const response = await axios.get(apiEndpoints.getTime())
       console.log("Time Optimization Data:", response.data)
       setOptimizationData(response.data)
     } catch (err) {
@@ -49,7 +50,7 @@ export default function OptimizationDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const response = await axios.get('http://localhost:8000/original_plan')
+      const response = await axios.get(apiEndpoints.getOriginalPlan())
       console.log("Original Plan Data:", response.data)
       setOriginalPlanData(response.data)
     } catch (err) {
@@ -66,7 +67,7 @@ export default function OptimizationDashboard() {
   const fetchScenarios = async () => {
     setLoadingScenarios(true)
     try {
-      const response = await axios.get('http://localhost:8000/get_scenarios')
+      const response = await axios.get(apiEndpoints.getScenarios())
       if (response.data && Array.isArray(response.data)) {
         setScenarios(response.data)
       }
@@ -86,7 +87,7 @@ export default function OptimizationDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const response = await axios.get(`http://localhost:8000/get_scenario/${scenarioName}`)
+      const response = await axios.get(apiEndpoints.getScenario(scenarioName))
       console.log('Scenario API Response:', response.data)
       setScenarioData(response.data)
     } catch (error) {
@@ -103,7 +104,7 @@ export default function OptimizationDashboard() {
     try {
       setLoading(true)
       setError(null)
-      const response = await axios.get('http://localhost:8000/get_formula')
+      const response = await axios.get(apiEndpoints.getFormula())
       console.log("Products Data:", response.data)
       setProductsData(response.data.data)
     } catch (err) {
@@ -140,7 +141,7 @@ export default function OptimizationDashboard() {
 
     try {
       setLoadingScenarios(true)
-      const response = await axios.delete(`http://localhost:8000/delete_scenario/${scenarioName}`)
+      const response = await axios.delete(apiEndpoints.deleteScenario(scenarioName))
       
       if (response.status === 200) {
         // Remove scenario from list
