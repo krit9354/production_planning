@@ -226,7 +226,7 @@ export default function CustomAdjustmentTab({
             };
 
             // Call the evaluate_custom_individual API endpoint
-            const response = await axios.post("http://localhost:8000/evaluate_custom_individual", optimizationData);
+            const response = await axios.post(apiEndpoints.evaluateCustomIndividual(), optimizationData);
             
             if (response.data.success) {
                 setCustomResults(response.data.json_result);

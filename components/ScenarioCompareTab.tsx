@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { apiEndpoints } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Card,
@@ -58,7 +59,7 @@ export default function ScenarioCompareTab({
     const fetchScenarios = async () => {
         setLoadingScenarios(true);
         try {
-            const response = await axios.get('http://localhost:8000/get_scenarios');
+            const response = await axios.get(apiEndpoints.getScenarios());
             if (response.data && Array.isArray(response.data)) {
                 setScenarios(response.data);
             }
@@ -80,7 +81,7 @@ export default function ScenarioCompareTab({
         if (!scenarioName) return null;
         
         try {
-            const response = await axios.get(`http://localhost:8000/get_scenario/${scenarioName}`);
+            const response = await axios.get(apiEndpoints.getScenario(scenarioName));
             console.log('Scenario API Response for', scenarioName, ':', response.data);
             return response.data;
         } catch (error) {
