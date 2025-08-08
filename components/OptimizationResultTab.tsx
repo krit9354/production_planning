@@ -1,6 +1,4 @@
 "use client";
-
-import { useState, useEffect } from "react";
 import {
     Card,
     CardContent,
@@ -18,7 +16,6 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    LineChart,
     Line,
     XAxis,
     YAxis,
@@ -36,144 +33,28 @@ import {
     TrendingDown,
     Factory,
 } from "lucide-react";
+import { OptimizationData, InventoryItem, Delivery, Product, ProductionPlanItem } from "@/lib/types";
 
 interface OptimizationResultTabProps {
     onRefresh: () => void;
     loading: boolean;
-    data: any;
+    data: OptimizationData | null;
 }
 
 export default function OptimizationResultTab({
-    onRefresh,
-    loading,
     data,
 }: OptimizationResultTabProps) {
-    // Mock data สำหรับ fallback
-    const mockData = {
-        summary: {
-            totalDays: 15,
-            avgCost: 1250,
-            totalProduction: 36,
-            totalCost: 45000,
-            successRate: 92.5,
-            actualProduction: 34.2,
-            avgCostPerTon: 1316,
-            optimizationType: "Genetic Algorithm",
-            maxPossibleDays: 18,
-            fitness: 0.8947,
-            finalInventory: {
-                pulp_a: 125.4,
-                pulp_b: 89.2,
-                pulp_c: 156.8,
-            },
-        },
-        products: [
-            {
-                id: "P1",
-                name: "Product 1",
-                type: "Dura Board",
-                formula: "F1",
-                ratios: {
-                    Pulp_A: 0.28,
-                    Pulp_B: 0.22,
-                    Pulp_C: 0.28,
-                    เยื่อกระดาษ: 0.22,
-                    Eucalyptus: 0,
-                },
-                target_quantity: 10,
-                unit: "tons",
-            },
-            {
-                id: "P2",
-                name: "Product 2",
-                type: "Smart Board",
-                formula: "F4",
-                ratios: {
-                    Pulp_A: 0.35,
-                    Pulp_B: 0.15,
-                    Pulp_C: 0.35,
-                    เยื่อกระดาษ: 0.15,
-                    Eucalyptus: 0,
-                },
-                target_quantity: 14,
-                unit: "tons",
-            },
-        ],
-        productionPlan: [
-            {
-                day: 1,
-                product: "P1",
-                formula: "F1",
-                quantity: 80,
-                target_quantity: 85,
-                rawMaterials: { A: 22.4, B: 17.6, C: 22.4, D: 17.6 },
-            },
-            {
-                day: 2,
-                product: "P2",
-                formula: "F4",
-                quantity: 100,
-                target_quantity: 100,
-                rawMaterials: { A: 35, B: 15, C: 35, D: 15 },
-            },
-        ],
-        inventoryData: [
-            {
-                day: 1,
-                date: "2025-01-01",
-                inventory: 950,
-                materialA: 240,
-                materialB: 180,
-                materialC: 200,
-                materialD: 160,
-                eucalyptus: 240,
-                pulp_a: 180,
-                pulp_b: 200,
-                pulp_c: 160,
-                deliveries: [],
-            },
-            {
-                day: 2,
-                date: "2025-01-02",
-                inventory: 850,
-                materialA: 205,
-                materialB: 165,
-                materialC: 165,
-                materialD: 145,
-                eucalyptus: 205,
-                pulp_a: 165,
-                pulp_b: 165,
-                pulp_c: 145,
-                deliveries: [],
-            },
-        ],
-        dataPerDay: [
-            {
-                day: 1,
-                cost_per_ton: 1250,
-                cost: 25000,
-                production_quantity: 20,
-            },
-            {
-                day: 2,
-                cost_per_ton: 1180,
-                cost: 23600,
-                production_quantity: 20,
-            },
-        ],
-    };
-
-    const currentData = data || mockData;
+    // Mock data สำหรับ fallbac
 
     // Process inventory data to extract delivery amounts by pulp type
     const processedInventoryData =
-        currentData.inventoryData?.map((item: any) => {
+        data?.inventoryData?.map((item: InventoryItem) => {
             let delivery_pulp_a = 0;
             let delivery_pulp_b = 0;
             let delivery_pulp_c = 0;
 
             if (item.deliveries && item.deliveries.length > 0) {
-                item.deliveries.forEach((delivery: any) => {
+                item.deliveries.forEach((delivery: Delivery) => {
                     switch (delivery.pulp_type) {
                         case "Pulp_A":
                             delivery_pulp_a += delivery.amount || 0;
@@ -196,7 +77,7 @@ export default function OptimizationResultTab({
             };
         }) || [];
 
-    if (!currentData) {
+    if (!data) {
         return (
             <div className="flex items-center justify-center p-8">
                 <p className="text-gray-500">ไม่มีข้อมูลแสดง</p>
@@ -217,9 +98,9 @@ export default function OptimizationResultTab({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {currentData.summary?.totalDays?.toFixed(3) || 0} วัน
+                            {data.summary?.totalDays?.toFixed(3) || 0} วัน
                         </div>
-                        <p className="text-xs text-muted-foreground">จาก {currentData.summary?.maxPossibleDays?.toFixed(0) || 0} วัน</p>
+                        <p className="text-xs text-muted-foreground">จาก {data.summary?.maxPossibleDays?.toFixed(0) || 0} วัน</p>
                     </CardContent>
                 </Card>
 
@@ -233,7 +114,7 @@ export default function OptimizationResultTab({
                     <CardContent>
                         <div className="text-2xl font-bold">
                             ฿
-                            {currentData.summary?.totalCost?.toLocaleString() ||
+                            {data.summary?.totalCost?.toLocaleString() ||
                                 0}
                         </div>
                         <p className="text-xs text-muted-foreground">บาท</p>
@@ -250,7 +131,7 @@ export default function OptimizationResultTab({
                     <CardContent>
                         <div className="text-2xl font-bold">
                             ฿
-                                {currentData.summary?.avgCostPerTon?.toLocaleString() ||
+                                {data.summary?.avgCostPerTon?.toLocaleString() ||
                                     0}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -268,11 +149,11 @@ export default function OptimizationResultTab({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {currentData.summary?.actualProduction?.toFixed(
+                            {data.summary?.actualProduction?.toFixed(
                                 2
                             ) || 0} ตัน
                         </div>
-                        <p className="text-xs text-muted-foreground">จาก {currentData.summary?.targetProduction?.toFixed(2) || 0} ตัน</p>
+                        <p className="text-xs text-muted-foreground">จาก {data.summary?.targetProduction?.toFixed(2) || 0} ตัน</p>
                     </CardContent>
                 </Card>
             </div>
@@ -323,10 +204,10 @@ export default function OptimizationResultTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {currentData.products
-                                ?.filter((product: any) => (product.target_quantity || 0) > 0)
+                            {data.products
+                                ?.filter((product: Product) => (product.target_quantity || 0) > 0)
                                 ?.map(
-                                (product: any, index: number) => (
+                                (product: Product, index: number) => (
                                     <TableRow
                                         key={product.name || index}
                                         className="hover:bg-gray-50"
@@ -425,8 +306,8 @@ export default function OptimizationResultTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {currentData.productionPlan?.map(
-                                (plan: any, index: number) => {
+                            {data.productionPlan?.map(
+                                (plan: ProductionPlanItem, index: number) => {
                                     const achievementPercent = 
                                         (plan.quantity / plan.target_quantity) *
                                         100
@@ -535,11 +416,11 @@ export default function OptimizationResultTab({
                                 <YAxis yAxisId="left" />
                                 <YAxis yAxisId="right" orientation="right" />
                                 <Tooltip
-                                    formatter={(value: any, name: string) => {
+                                    formatter={(value: number | string, name: string) => {
                                         if (
                                             (name.includes("delivery_") ||
                                                 name.includes("ส่งมอบ")) &&
-                                            parseFloat(value) === 0
+                                            parseFloat(String(value)) === 0
                                         ) {
                                             return [null, null];
                                         }
@@ -572,7 +453,7 @@ export default function OptimizationResultTab({
                                                 displayName = name;
                                         }
                                         return [
-                                            `${parseFloat(value).toFixed(
+                                            `${parseFloat(String(value)).toFixed(
                                                 2
                                             )} ตัน`,
                                             displayName,
@@ -671,14 +552,14 @@ export default function OptimizationResultTab({
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={currentData.dataPerDay}>
+                            <BarChart data={data.dataPerDay}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [
+                                    formatter={(value: number | string) => [
                                         `฿${parseFloat(
-                                            value
+                                            String(value)
                                         ).toLocaleString()}`,
                                         "ต้นทุนต่อตัน",
                                     ]}
@@ -707,14 +588,14 @@ export default function OptimizationResultTab({
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={currentData.dataPerDay}>
+                            <BarChart data={data.dataPerDay}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [
+                                    formatter={(value: number | string) => [
                                         `฿${parseFloat(
-                                            value
+                                            String(value)
                                         ).toLocaleString()}`,
                                         "ต้นทุนรายวัน",
                                     ]}
@@ -743,13 +624,13 @@ export default function OptimizationResultTab({
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={currentData.dataPerDay}>
+                            <BarChart data={data.dataPerDay}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="day" />
                                 <YAxis />
                                 <Tooltip
-                                    formatter={(value: any) => [
-                                        `${parseFloat(value).toFixed(2)} ตัน`,
+                                    formatter={(value: number | string) => [
+                                        `${parseFloat(String(value)).toFixed(2)} ตัน`,
                                         "ปริมาณการผลิต",
                                     ]}
                                     labelFormatter={(label) =>
@@ -781,17 +662,17 @@ export default function OptimizationResultTab({
                             <div className="mt-2 space-y-1 text-sm text-gray-600">
                                 <p>
                                     Algorithm:{" "}
-                                    {currentData.summary?.optimizationType ||
+                                    {data.summary?.optimizationType ||
                                         "N/A"}
                                 </p>
                                 <p>
                                     Max Possible Days:{" "}
-                                    {currentData.summary?.maxPossibleDays ||
+                                    {data.summary?.maxPossibleDays ||
                                         "N/A"}
                                 </p>
                                 <p>
                                     Fitness Score:{" "}
-                                    {currentData.summary?.fitness?.toFixed(4) ||
+                                    {data.summary?.fitness?.toFixed(4) ||
                                         "N/A"}
                                 </p>
                             </div>
@@ -803,28 +684,28 @@ export default function OptimizationResultTab({
                             <div className="mt-2 space-y-1 text-sm text-gray-600">
                                 <p>
                                     Pulp A:{" "}
-                                    {currentData.pulpInventoryFinal?.pulp_a?.toFixed(
+                                    {data.pulpInventoryFinal?.pulp_a?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน
                                 </p>
                                 <p>
                                     Pulp B:{" "}
-                                    {currentData.pulpInventoryFinal?.pulp_b?.toFixed(
+                                    {data.pulpInventoryFinal?.pulp_b?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน
                                 </p>
                                 <p>
                                     Pulp C:{" "}
-                                    {currentData.pulpInventoryFinal?.pulp_c?.toFixed(
+                                    {data.pulpInventoryFinal?.pulp_c?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน
                                 </p>
                                 <p>
                                     Eucalyptus:{" "}
-                                    {currentData.pulpInventoryFinal?.eucalyptus?.toFixed(
+                                    {data.pulpInventoryFinal?.eucalyptus?.toFixed(
                                         2
                                     ) || 0}{" "}
                                     ตัน

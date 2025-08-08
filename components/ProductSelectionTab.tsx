@@ -4,14 +4,14 @@ import { useState } from "react"
 import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, Play, RefreshCw } from "lucide-react"
 import OptimizationResultTab from "./OptimizationResultTab"
 import { apiEndpoints } from "@/lib/api"
+import { ProductsData, OptimizationData } from "@/lib/types"
 
 interface ProductSelectionTabProps {
-  productsData: any
+  productsData: ProductsData | null
   loading: boolean
   onRefresh: () => void
 }
@@ -19,7 +19,7 @@ interface ProductSelectionTabProps {
 export default function ProductSelectionTab({ productsData, loading, onRefresh }: ProductSelectionTabProps) {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [scenarioName, setScenarioName] = useState<string>("")
-  const [optimizationData, setOptimizationData] = useState<any>(null)
+  const [optimizationData, setOptimizationData] = useState<OptimizationData | null>(null)
   const [optimizing, setOptimizing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -96,9 +96,17 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
       } else {
         throw new Error(response.data.message || 'Optimization failed')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Optimization error:', error)
-      const errorMessage = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการปรับปรุงประสิทธิภาพ'
+      let errorMessage = 'เกิดข้อผิดพลาดในการปรับปรุงประสิทธิภาพ'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null) {
+        const apiError = error as { response?: { data?: { message?: string } }; message?: string }
+        errorMessage = apiError.response?.data?.message || apiError.message || errorMessage
+      }
+      
       setError(errorMessage)
       alert(`เกิดข้อผิดพลาด: ${errorMessage}`)
     } finally {
@@ -177,13 +185,13 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             <label htmlFor="scenario-name" className="block text-sm font-medium mb-2">
               ชื่อ Scenario <span className="text-red-500">*</span>
             </label>
-            <Input
+            <input
               id="scenario-name"
               type="text"
-              placeholder="ใส่ชื่อ scenario เช่น test_selective_optimization"
+              placeholder="ใส่ชื่อ scenario"
               value={scenarioName}
               onChange={(e) => setScenarioName(e.target.value)}
-              className="max-w-md"
+              className="w-64 h-10 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1">
               ชื่อ scenario จะใช้เป็นชื่อไฟล์ผลลัพธ์ที่บันทึก
@@ -302,20 +310,6 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Instructions */}
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="font-semibold mb-2">วิธีการใช้งาน:</h3>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li>1. ใส่ชื่อ Scenario ที่ต้องการ (จำเป็น)</li>
-            <li>2. เลือกสินค้าที่ต้องการปรับปรุงประสิทธิภาพโดยคลิกที่การ์ดสินค้า</li>
-            <li>3. สินค้าที่เลือกจะแสดงด้วยสีม่วงและมีเครื่องหมายถูก</li>
-            <li>4. คลิก "เริ่มปรับปรุงประสิทธิภาพ" เพื่อเรียก API และเริ่มการคำนวณ</li>
-            <li>5. ผลลัพธ์จะถูกบันทึกเป็นไฟล์ JSON และแสดงผลลัพธ์การปรับปรุง</li>
-          </ul>
         </CardContent>
       </Card>
     </div>

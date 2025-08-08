@@ -11,10 +11,8 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    LineChart,
     Line,
     XAxis,
     YAxis,
@@ -26,7 +24,6 @@ import {
     ComposedChart,
 } from "recharts";
 import {
-    Calendar,
     DollarSign,
     Package,
     TrendingDown,
@@ -35,6 +32,7 @@ import {
     ArrowRight,
     Play
 } from "lucide-react";
+import { OptimizationData, safeCalculation, InventoryItem, Delivery } from "@/lib/types";
 
 interface ScenarioCompareTabProps {
     onRefresh: () => void;
@@ -42,13 +40,11 @@ interface ScenarioCompareTabProps {
 }
 
 export default function ScenarioCompareTab({
-    onRefresh,
-    loading,
 }: ScenarioCompareTabProps) {
     const [selectedScenario1, setSelectedScenario1] = useState<string>("");
     const [selectedScenario2, setSelectedScenario2] = useState<string>("");
-    const [scenario1Data, setScenario1Data] = useState<any>(null);
-    const [scenario2Data, setScenario2Data] = useState<any>(null);
+    const [scenario1Data, setScenario1Data] = useState<OptimizationData | null>(null);
+    const [scenario2Data, setScenario2Data] = useState<OptimizationData | null>(null);
     const [comparing, setComparing] = useState<boolean>(false);
     
     // API states
@@ -114,14 +110,14 @@ export default function ScenarioCompareTab({
     };
 
     // Process inventory data
-    const processInventoryData = (data: any) => {
-        return data?.inventoryData?.map((item: any) => {
+    const processInventoryData = (data: OptimizationData | null) => {
+        return data?.inventoryData?.map((item: InventoryItem) => {
             let delivery_pulp_a = 0;
             let delivery_pulp_b = 0;
             let delivery_pulp_c = 0;
 
             if (item.deliveries && item.deliveries.length > 0) {
-                item.deliveries.forEach((delivery: any) => {
+                item.deliveries.forEach((delivery: Delivery) => {
                     switch (delivery.pulp_type) {
                         case 'Pulp_A':
                             delivery_pulp_a += delivery.amount || 0;
@@ -333,7 +329,7 @@ export default function ScenarioCompareTab({
                                     <YAxis yAxisId="left" />
                                     <YAxis yAxisId="right" orientation="right" />
                                     <Tooltip
-                                        formatter={(value: any, name: string) => {
+                                        formatter={(value: number | string, name: string) => {
                                             let displayName = name;
                                             switch (name) {
                                                 case "eucalyptus": displayName = "Eucalyptus คงเหลือ"; break;
@@ -342,7 +338,7 @@ export default function ScenarioCompareTab({
                                                 case "pulp_c": displayName = "Pulp C คงเหลือ"; break;
                                                 default: displayName = name;
                                             }
-                                            return [`${parseFloat(value).toFixed(2)} ตัน`, displayName];
+                                            return [`${parseFloat(String(value)).toFixed(2)} ตัน`, displayName];
                                         }}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
@@ -405,7 +401,7 @@ export default function ScenarioCompareTab({
                                     <YAxis yAxisId="left" />
                                     <YAxis yAxisId="right" orientation="right" />
                                     <Tooltip
-                                        formatter={(value: any, name: string) => {
+                                        formatter={(value: number | string, name: string) => {
                                             let displayName = name;
                                             switch (name) {
                                                 case "eucalyptus": displayName = "Eucalyptus คงเหลือ"; break;
@@ -414,7 +410,7 @@ export default function ScenarioCompareTab({
                                                 case "pulp_c": displayName = "Pulp C คงเหลือ"; break;
                                                 default: displayName = name;
                                             }
-                                            return [`${parseFloat(value).toFixed(2)} ตัน`, displayName];
+                                            return [`${parseFloat(String(value)).toFixed(2)} ตัน`, displayName];
                                         }}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
@@ -475,7 +471,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, "ต้นทุนต่อตัน"]}
+                                        formatter={(value: number | string) => [`฿${parseFloat(String(value)).toLocaleString()}`, "ต้นทุนต่อตัน"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="cost_per_ton" fill="#8884d8" name="Cost per Ton" />
@@ -499,7 +495,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, "ต้นทุนต่อตัน"]}
+                                        formatter={(value: number | string) => [`฿${parseFloat(String(value)).toLocaleString()}`, "ต้นทุนต่อตัน"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="cost_per_ton" fill="#8884d8" name="Cost per Ton" />
@@ -524,7 +520,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, "ต้นทุนรายวัน"]}
+                                        formatter={(value: number | string) => [`฿${parseFloat(String(value)).toLocaleString()}`, "ต้นทุนรายวัน"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="cost" fill="#82ca9d" name="Daily Cost" />
@@ -548,7 +544,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`฿${parseFloat(value).toLocaleString()}`, "ต้นทุนรายวัน"]}
+                                        formatter={(value: number | string) => [`฿${parseFloat(String(value)).toLocaleString()}`, "ต้นทุนรายวัน"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="cost" fill="#82ca9d" name="Daily Cost" />
@@ -573,7 +569,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`${parseFloat(value).toFixed(2)} ตัน`, "ปริมาณการผลิต"]}
+                                        formatter={(value: number | string) => [`${parseFloat(String(value)).toFixed(2)} ตัน`, "ปริมาณการผลิต"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="production_quantity" fill="#ffc658" name="Production Quantity" />
@@ -597,7 +593,7 @@ export default function ScenarioCompareTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [`${parseFloat(value).toFixed(2)} ตัน`, "ปริมาณการผลิต"]}
+                                        formatter={(value: number | string) => [`${parseFloat(String(value)).toFixed(2)} ตัน`, "ปริมาณการผลิต"]}
                                         labelFormatter={(label) => `วันที่ ${label}`}
                                     />
                                     <Bar dataKey="production_quantity" fill="#ffc658" name="Production Quantity" />
@@ -625,44 +621,60 @@ export default function ScenarioCompareTab({
                             {/* Days Comparison */}
                             <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
-                                    {(scenario1Data.summary?.totalDays - scenario2Data.summary?.totalDays).toFixed(2)}
+                                    {safeCalculation(
+                                        scenario1Data.summary?.totalDays,
+                                        scenario2Data.summary?.totalDays,
+                                        'subtract'
+                                    ).toFixed(2)}
                                 </div>
                                 <div className="text-sm text-blue-600">วันที่แตกต่าง</div>
                                 <div className="text-xs text-gray-500">
-                                    ({scenario1Data.summary?.totalDays > scenario2Data.summary?.totalDays ? 'S1 > S2' : 'S2 > S1'})
+                                    ({(scenario1Data.summary?.totalDays ?? 0) > (scenario2Data.summary?.totalDays ?? 0) ? 'S1 > S2' : 'S2 > S1'})
                                 </div>
                             </div>
 
                             {/* Cost per Ton Comparison */}
                             <div className="text-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
-                                    ฿{Math.abs(scenario1Data.summary?.avgCostPerTon - scenario2Data.summary?.avgCostPerTon).toLocaleString()}
+                                    ฿{Math.abs(safeCalculation(
+                                        scenario1Data.summary?.avgCostPerTon,
+                                        scenario2Data.summary?.avgCostPerTon,
+                                        'subtract'
+                                    )).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-green-600">ต้นทุน/ตัน ที่แตกต่าง</div>
                                 <div className="text-xs text-gray-500">
-                                    ({scenario1Data.summary?.avgCostPerTon > scenario2Data.summary?.avgCostPerTon ? 'S1 > S2' : 'S2 > S1'})
+                                    ({(scenario1Data.summary?.avgCostPerTon ?? 0) > (scenario2Data.summary?.avgCostPerTon ?? 0) ? 'S1 > S2' : 'S2 > S1'})
                                 </div>
                             </div>
 
                             {/* Production Comparison */}
                             <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg">
                                 <div className="text-2xl font-bold text-purple-600">
-                                    {Math.abs(scenario1Data.summary?.actualProduction - scenario2Data.summary?.actualProduction).toFixed(2)}
+                                    {Math.abs(safeCalculation(
+                                        scenario1Data.summary?.actualProduction,
+                                        scenario2Data.summary?.actualProduction,
+                                        'subtract'
+                                    )).toFixed(2)}
                                 </div>
                                 <div className="text-sm text-purple-600">ผลิตจริงที่แตกต่าง (ตัน)</div>
                                 <div className="text-xs text-gray-500">
-                                    ({scenario1Data.summary?.actualProduction > scenario2Data.summary?.actualProduction ? 'S1 > S2' : 'S2 > S1'})
+                                    ({(scenario1Data.summary?.actualProduction ?? 0) > (scenario2Data.summary?.actualProduction ?? 0) ? 'S1 > S2' : 'S2 > S1'})
                                 </div>
                             </div>
 
                             {/* Total Cost Comparison */}
                             <div className="text-center p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
-                                    ฿{Math.abs(scenario1Data.summary?.totalCost - scenario2Data.summary?.totalCost).toLocaleString()}
+                                    ฿{Math.abs(safeCalculation(
+                                        scenario1Data.summary?.totalCost,
+                                        scenario2Data.summary?.totalCost,
+                                        'subtract'
+                                    )).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-red-600">ต้นทุนรวมที่แตกต่าง</div>
                                 <div className="text-xs text-gray-500">
-                                    ({scenario1Data.summary?.totalCost > scenario2Data.summary?.totalCost ? 'S1 > S2' : 'S2 > S1'})
+                                    ({(scenario1Data.summary?.totalCost ?? 0) > (scenario2Data.summary?.totalCost ?? 0) ? 'S1 > S2' : 'S2 > S1'})
                                 </div>
                             </div>
                         </div>

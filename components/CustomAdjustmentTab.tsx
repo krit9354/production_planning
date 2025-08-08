@@ -19,7 +19,6 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    LineChart,
     Line,
     XAxis,
     YAxis,
@@ -31,19 +30,26 @@ import {
     ComposedChart,
 } from "recharts";
 import {
-    Calendar,
     DollarSign,
     Package,
     TrendingDown,
     Factory,
     Settings,
     Play,
-    RotateCcw,
     ArrowRight,
 } from "lucide-react";
 import axios from "axios";
 import { apiEndpoints } from "@/lib/api";
-
+import { 
+    OptimizationData, 
+    Product,
+    safeCalculation,
+    safePercentageChange,
+    getSafeSummaryValue,
+    FormulaData,
+    InventoryItem,
+    Delivery
+} from "@/lib/types";
 interface CustomAdjustmentTabProps {
     onRefresh: () => void;
     loading: boolean;
@@ -51,12 +57,11 @@ interface CustomAdjustmentTabProps {
 
 export default function CustomAdjustmentTab({
     onRefresh,
-    loading,
 }: CustomAdjustmentTabProps) {
-    const [customRatios, setCustomRatios] = useState<any[]>([]);
+    const [customRatios, setCustomRatios] = useState<Product[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [originalResults, setOriginalResults] = useState<any>(null);
-    const [customResults, setCustomResults] = useState<any>(null);
+    const [originalResults, setOriginalResults] = useState<OptimizationData | null>(null);
+    const [customResults, setCustomResults] = useState<OptimizationData | null>(null);
     const [newScenarioName, setNewScenarioName] = useState<string>("");
 
     // Scenario states
@@ -65,7 +70,7 @@ export default function CustomAdjustmentTab({
     const [loadingScenarios, setLoadingScenarios] = useState(false);
 
     // Formula states
-    const [formulaData, setFormulaData] = useState<any>({});
+    const [formulaData, setFormulaData] = useState<FormulaData>({});
     const [loadingFormulas, setLoadingFormulas] = useState(false);
 
     // Create percentage options for dropdowns
@@ -205,7 +210,7 @@ export default function CustomAdjustmentTab({
         setIsProcessing(true);
         try {
             // Prepare data for API call with custom structure
-            const settings: { [key: string]: { formula: string; pulp_ratios: any } } = {};
+            const settings: { [key: string]: { formula: string; pulp_ratios: { Pulp_A: number; Pulp_B: number; Pulp_C: number; Eucalyptus: number } } } = {};
             
             customRatios.forEach((product) => {
                 settings[`${product.type}|${product.name}`] = {
@@ -248,7 +253,7 @@ export default function CustomAdjustmentTab({
     };
 
     // Validate ratios (should sum to 100% excluding eucalyptus)
-    const validateRatios = (product: any) => {
+    const validateRatios = (product: Product) => {
         // Handle API format - use ratios object
         const ratios = product.ratios;
         if (!ratios) return false;
@@ -264,7 +269,7 @@ export default function CustomAdjustmentTab({
     };
 
     // Get original ratios from API results
-    const getOriginalRatios = (product: any) => {
+    const getOriginalRatios = (product: Product) => {
         if (!originalResults?.products) {
             // Fallback to static data if no originalResults
             return {
@@ -277,7 +282,7 @@ export default function CustomAdjustmentTab({
 
         // Find matching product in original results by formula
         const matchingProduct = originalResults.products.find(
-            (p: any) => p.formula === product.formula || p.name === product.name
+            (p: Product) => p.formula === product.formula || p.name === product.name
         );
 
         if (matchingProduct?.ratios) {
@@ -294,15 +299,15 @@ export default function CustomAdjustmentTab({
     };
 
     // Process inventory data for both original and custom results
-    const processInventoryData = (data: any) => {
+    const processInventoryData = (data: OptimizationData | null) => {
         return (
-            data?.inventoryData?.map((item: any) => {
+            data?.inventoryData?.map((item: InventoryItem) => {
                 let delivery_pulp_a = 0;
                 let delivery_pulp_b = 0;
                 let delivery_pulp_c = 0;
 
                 if (item.deliveries && item.deliveries.length > 0) {
-                    item.deliveries.forEach((delivery: any) => {
+                    item.deliveries.forEach((delivery: Delivery) => {
                         switch (delivery.pulp_type) {
                             case "Pulp_A":
                                 delivery_pulp_a += delivery.amount || 0;
@@ -828,13 +833,13 @@ export default function CustomAdjustmentTab({
                                     />
                                     <Tooltip
                                         formatter={(
-                                            value: any,
+                                            value: number | string,
                                             name: string
                                         ) => {
                                             if (
                                                 (name.includes("delivery_") ||
                                                     name.includes("ส่งมอบ")) &&
-                                                parseFloat(value) === 0
+                                                parseFloat(String(value)) === 0
                                             ) {
                                                 return [null, null];
                                             }
@@ -873,7 +878,7 @@ export default function CustomAdjustmentTab({
                                                     displayName = name;
                                             }
                                             return [
-                                                `${parseFloat(value).toFixed(
+                                                `${parseFloat(String(value)).toFixed(
                                                     2
                                                 )} ตัน`,
                                                 displayName,
@@ -985,13 +990,13 @@ export default function CustomAdjustmentTab({
                                     />
                                     <Tooltip
                                         formatter={(
-                                            value: any,
+                                            value: number | string,
                                             name: string
                                         ) => {
                                             if (
                                                 (name.includes("delivery_") ||
                                                     name.includes("ส่งมอบ")) &&
-                                                parseFloat(value) === 0
+                                                parseFloat(String(value)) === 0
                                             ) {
                                                 return [null, null];
                                             }
@@ -1030,7 +1035,7 @@ export default function CustomAdjustmentTab({
                                                     displayName = name;
                                             }
                                             return [
-                                                `${parseFloat(value).toFixed(
+                                                `${parseFloat(String(value)).toFixed(
                                                     2
                                                 )} ตัน`,
                                                 displayName,
@@ -1136,9 +1141,9 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
+                                        formatter={(value: number | string) => [
                                             `฿${parseFloat(
-                                                value
+                                                String(value)
                                             ).toLocaleString()}`,
                                             "ต้นทุนต่อตัน",
                                         ]}
@@ -1172,9 +1177,9 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
+                                        formatter={(value: number | string) => [
                                             `฿${parseFloat(
-                                                value
+                                                String(value)
                                             ).toLocaleString()}`,
                                             "ต้นทุนต่อตัน",
                                         ]}
@@ -1208,9 +1213,9 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
+                                        formatter={(value: number | string) => [
                                             `฿${parseFloat(
-                                                value
+                                                String(value)
                                             ).toLocaleString()}`,
                                             "ต้นทุนรายวัน",
                                         ]}
@@ -1242,9 +1247,9 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
+                                        formatter={(value: number | string) => [
                                             `฿${parseFloat(
-                                                value
+                                                String(value)
                                             ).toLocaleString()}`,
                                             "ต้นทุนรายวัน",
                                         ]}
@@ -1280,8 +1285,8 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
-                                            `${parseFloat(value).toFixed(
+                                        formatter={(value: number | string) => [
+                                            `${parseFloat(String(value)).toFixed(
                                                 2
                                             )} ตัน`,
                                             "ปริมาณการผลิต",
@@ -1316,8 +1321,8 @@ export default function CustomAdjustmentTab({
                                     <XAxis dataKey="day" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: any) => [
-                                            `${parseFloat(value).toFixed(
+                                        formatter={(value: number | string) => [
+                                            `${parseFloat(String(value)).toFixed(
                                                 2
                                             )} ตัน`,
                                             "ปริมาณการผลิต",
@@ -1355,92 +1360,70 @@ export default function CustomAdjustmentTab({
                             {/* Days Improvement */}
                             <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">
-                                    {(
-                                        originalResults.summary?.totalDays -
-                                            customResults.summary?.totalDays ||
-                                        0
+                                    {safeCalculation(
+                                        originalResults.summary?.totalDays,
+                                        customResults.summary?.totalDays,
+                                        'subtract'
                                     ).toFixed(2)}
                                 </div>
                                 <div className="text-sm text-blue-600">
                                     วันที่ลดลง
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    (
-                                    {(
-                                        ((originalResults.summary?.totalDays -
-                                            customResults.summary?.totalDays) /
-                                            originalResults.summary
-                                                ?.totalDays) *
-                                            100 || 0
-                                    ).toFixed(1)}
-                                    %)
+                                    ({safePercentageChange(
+                                        originalResults.summary?.totalDays,
+                                        customResults.summary?.totalDays
+                                    ).toFixed(1)}%)
                                 </div>
                             </div>
 
                             {/* Cost Improvement */}
                             <div className="text-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">
-                                    ฿
-                                    {(
-                                        originalResults.summary?.avgCostPerTon -
-                                            customResults.summary
-                                                ?.avgCostPerTon || 0
+                                    ฿{safeCalculation(
+                                        getSafeSummaryValue(originalResults, 'avgCostPerTon'),
+                                        getSafeSummaryValue(customResults, 'avgCostPerTon'),
+                                        'subtract'
                                     ).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-green-600">
                                     ต้นทุนที่ประหยัด/ตัน
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    (
-                                    {(
-                                        ((originalResults.summary
-                                            ?.avgCostPerTon -
-                                            customResults.summary
-                                                ?.avgCostPerTon) /
-                                            originalResults.summary
-                                                ?.avgCostPerTon) *
-                                            100 || 0
-                                    ).toFixed(1)}
-                                    %)
+                                    ({safePercentageChange(
+                                        getSafeSummaryValue(originalResults, 'avgCostPerTon'),
+                                        getSafeSummaryValue(customResults, 'avgCostPerTon')
+                                    ).toFixed(1)}%)
                                 </div>
                             </div>
 
                             {/* Production Improvement */}
                             <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg">
                                 <div className="text-2xl font-bold text-purple-600">
-                                    +
-                                    {(
-                                        customResults.summary
-                                            ?.actualProduction -
-                                            originalResults.summary
-                                                ?.actualProduction || 0
+                                    +{safeCalculation(
+                                        getSafeSummaryValue(customResults, 'actualProduction'),
+                                        getSafeSummaryValue(originalResults, 'actualProduction'),
+                                        'subtract'
                                     ).toFixed(1)}
                                 </div>
                                 <div className="text-sm text-purple-600">
                                     ผลผลิตที่เพิ่มขึ้น (ตัน)
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    (
-                                    {(
-                                        ((customResults.summary
-                                            ?.actualProduction -
-                                            originalResults.summary
-                                                ?.actualProduction) /
-                                            originalResults.summary
-                                                ?.actualProduction) *
-                                            100 || 0
-                                    ).toFixed(1)}
-                                    %)
+                                    ({safePercentageChange(
+                                        getSafeSummaryValue(originalResults, 'actualProduction'),
+                                        getSafeSummaryValue(customResults, 'actualProduction')
+                                    ).toFixed(1)}%)
                                 </div>
                             </div>
 
                             {/* Success Rate Improvement */}
                             <div className="text-center p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-lg">
                                 <div className="text-2xl font-bold text-red-600">
-                                    {(
-                                        customResults.summary?.totalCost -
-                                            originalResults.summary
-                                                ?.totalCost || 0
+                                    {safeCalculation(
+                                        getSafeSummaryValue(customResults, 'totalCost'),
+                                        getSafeSummaryValue(originalResults, 'totalCost'),
+                                        'subtract'
                                     ).toFixed(1)}
                                     บาท
                                 </div>

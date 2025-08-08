@@ -5,20 +5,24 @@ import axios from "axios"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, Package, Settings, Target, Database } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
 import ProductSelectionTab from "@/components/ProductSelectionTab"
 import ScenarioCompareTab from "@/components/ScenarioCompareTab"
 import { apiEndpoints } from "@/lib/api"
+import { 
+  OptimizationData, 
+  ProductsData, 
+} from "@/lib/types"
+
 
 export default function OptimizationDashboard() {
   const [activeTab, setActiveTab] = useState("original")
-  const [optimizationData, setOptimizationData] = useState<any>(null)
-  const [originalPlanData, setOriginalPlanData] = useState<any>(null)
-  const [scenarioData, setScenarioData] = useState<any>(null)
-  const [productsData, setProductsData] = useState<any>(null)
+  const [optimizationData, setOptimizationData] = useState<OptimizationData | null>(null)
+  const [originalPlanData, setOriginalPlanData] = useState<OptimizationData | null>(null)
+  const [scenarioData, setScenarioData] = useState<OptimizationData | null>(null)
+  const [productsData, setProductsData] = useState<ProductsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -156,16 +160,29 @@ export default function OptimizationDashboard() {
         // Show success message
         alert(`ลบ scenario "${scenarioName}" เรียบร้อยแล้ว`)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting scenario:', error)
       
       // Handle different error types
-      if (error.response?.status === 404) {
-        alert(`ไม่พบ scenario "${scenarioName}"`)
-      } else if (error.response?.status === 403) {
-        alert(`ไม่มีสิทธิ์ในการลบ scenario "${scenarioName}"`)
+      if (typeof error === 'object' && error !== null) {
+        const apiError = error as { 
+          response?: { 
+            status?: number; 
+            data?: { detail?: string } 
+          }; 
+          message?: string 
+        }
+        
+        if (apiError.response?.status === 404) {
+          alert(`ไม่พบ scenario "${scenarioName}"`)
+        } else if (apiError.response?.status === 403) {
+          alert(`ไม่มีสิทธิ์ในการลบ scenario "${scenarioName}"`)
+        } else {
+          const errorMessage = apiError.response?.data?.detail || apiError.message || 'ข้อผิดพลาดไม่ทราบสาเหตุ'
+          alert(`เกิดข้อผิดพลาดในการลบ scenario: ${errorMessage}`)
+        }
       } else {
-        alert(`เกิดข้อผิดพลาดในการลบ scenario: ${error.response?.data?.detail || error.message}`)
+        alert(`เกิดข้อผิดพลาดในการลบ scenario: ${String(error)}`)
       }
     } finally {
       setLoadingScenarios(false)
