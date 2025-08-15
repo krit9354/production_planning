@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Card,
     CardContent,
@@ -280,9 +279,9 @@ export default function CustomAdjustmentTab({
             };
         }
 
-        // Find matching product in original results by formula
+        // Find matching product in original results by name (not formula, since formula can change)
         const matchingProduct = originalResults.products.find(
-            (p: Product) => p.formula === product.formula || p.name === product.name
+            (p: Product) => p.name === product.name
         );
 
         if (matchingProduct?.ratios) {
@@ -296,6 +295,20 @@ export default function CustomAdjustmentTab({
             Pulp_C: 0,
             Eucalyptus: 0,
         };
+    };
+
+    // Get original formula from API results
+    const getOriginalFormula = (product: Product) => {
+        if (!originalResults?.products) {
+            return product.formula; // Fallback to current formula
+        }
+
+        // Find matching product in original results by name
+        const matchingProduct = originalResults.products.find(
+            (p: Product) => p.name === product.name
+        );
+
+        return matchingProduct?.formula || product.formula;
     };
 
     // Process inventory data for both original and custom results
@@ -356,22 +369,21 @@ export default function CustomAdjustmentTab({
                             <label className="text-sm font-medium">
                                 เลือก Scenario:
                             </label>
-                            <Select
+                            <select
                                 value={selectedScenario}
-                                onValueChange={setSelectedScenario}
+                                onChange={(e) => setSelectedScenario(e.target.value)}
                                 disabled={loadingScenarios}
+                                className="max-w-[30%] h-10 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <SelectTrigger className="max-w-[30%]">
-                                    <SelectValue placeholder={loadingScenarios ? "กำลังโหลด..." : "-- เลือก Scenario --"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {scenarios.map((scenario, index) => (
-                                        <SelectItem key={`custom-scenario-${index}-${scenario}`} value={scenario}>
-                                            {scenario}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                <option value="">
+                                    {loadingScenarios ? "กำลังโหลด..." : "-- เลือก Scenario --"}
+                                </option>
+                                {scenarios.map((scenario, index) => (
+                                    <option key={`custom-scenario-${index}-${scenario}`} value={scenario}>
+                                        {scenario}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* Row 2: New Scenario Name and Process Button */}
@@ -518,7 +530,7 @@ export default function CustomAdjustmentTab({
                                                     variant="outline"
                                                     className="bg-blue-50 text-blue-700 border-blue-200"
                                                 >
-                                                    {product.formula}
+                                                    {getOriginalFormula(product)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell
@@ -600,79 +612,63 @@ export default function CustomAdjustmentTab({
                                             className="hover:bg-gray-50"
                                         >
                                             <TableCell className="text-center">
-                                                <Select
+                                                <select
                                                     value={product.formula}
-                                                    onValueChange={(value) => handleFormulaChange(index, value)}
+                                                    onChange={(e) => handleFormulaChange(index, e.target.value)}
                                                     disabled={loadingFormulas}
+                                                    className="w-24 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    <SelectTrigger className="w-24 h-8 text-xs">
-                                                        <SelectValue placeholder="เลือก" className="text-xs" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {product.name && formulaData[product.type][product.name] ? 
-                                                            formulaData[product.type][product.name].map((formula: string, formulaIndex: number) => (
-                                                                <SelectItem key={`${index}-${formulaIndex}-${formula}`} value={formula} className="text-xs">
-                                                                    {formula}
-                                                                </SelectItem>
-                                                            )) : (
-                                                                <SelectItem value="no-data" disabled className="text-xs">
-                                                                    ไม่มีข้อมูล
-                                                                </SelectItem>
-                                                            )
-                                                        }
-                                                    </SelectContent>
-                                                </Select>
+                                                    {product.name && formulaData[product.type][product.name] ? 
+                                                        formulaData[product.type][product.name].map((formula: string, formulaIndex: number) => (
+                                                            <option key={`${index}-${formulaIndex}-${formula}`} value={formula}>
+                                                                {formula}
+                                                            </option>
+                                                        )) : (
+                                                            <option value="no-data" disabled>
+                                                                ไม่มีข้อมูล
+                                                            </option>
+                                                        )
+                                                    }
+                                                </select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Select
+                                                <select
                                                     value={((product.ratios?.Pulp_A || 0) * 100).toString()}
-                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_A", value)}
+                                                    onChange={(e) => handleRatioChange(index, "Pulp_A", e.target.value)}
+                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
-                                                    <SelectTrigger className="w-20 h-8 text-xs">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {pulpAOptions.map((option) => (
-                                                            <SelectItem key={`pulp-a-${index}-${option}`} value={option.toString()} className="text-xs">
-                                                                {option}%
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                    {pulpAOptions.map((option) => (
+                                                        <option key={`pulp-a-${index}-${option}`} value={option.toString()}>
+                                                            {option}%
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Select
+                                                <select
                                                     value={((product.ratios?.Pulp_B || 0) * 100).toString()}
-                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_B", value)}
+                                                    onChange={(e) => handleRatioChange(index, "Pulp_B", e.target.value)}
+                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
-                                                    <SelectTrigger className="w-20 h-8 text-xs">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {pulpBOptions.map((option) => (
-                                                            <SelectItem key={`pulp-b-${index}-${option}`} value={option.toString()} className="text-xs">
-                                                                {option}%
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                    {pulpBOptions.map((option) => (
+                                                        <option key={`pulp-b-${index}-${option}`} value={option.toString()}>
+                                                            {option}%
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Select
+                                                <select
                                                     value={((product.ratios?.Pulp_C || 0) * 100).toString()}
-                                                    onValueChange={(value) => handleRatioChange(index, "Pulp_C", value)}
+                                                    onChange={(e) => handleRatioChange(index, "Pulp_C", e.target.value)}
+                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
-                                                    <SelectTrigger className="w-20 h-8 text-xs">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {pulpCOptions.map((option) => (
-                                                            <SelectItem key={`pulp-c-${index}-${option}`} value={option.toString()} className="text-xs">
-                                                                {option}%
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                    {pulpCOptions.map((option) => (
+                                                        <option key={`pulp-c-${index}-${option}`} value={option.toString()}>
+                                                            {option}%
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </TableCell>
                                         </TableRow>
                                     </React.Fragment>
