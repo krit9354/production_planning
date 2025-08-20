@@ -16,6 +16,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { apiEndpoints } from "@/lib/api";
+import OptimizationResultTab from "./OptimizationResultTab";
 
 interface ScenarioSelectorProps {
     scenarios: string[];
@@ -23,6 +25,10 @@ interface ScenarioSelectorProps {
     onSelectedScenarioChange: (scenario: string) => void;
     loadingScenarios: boolean;
     onDeleteScenario: (scenarioName: string) => void;
+    scenarioData?: any; // ข้อมูล scenario ที่เลือก
+    loading?: boolean; // loading สำหรับ OptimizationResultTab
+    onRefresh?: () => void; // callback สำหรับ refresh data
+    onSaveScenario?: (scenarioName: string, data: any) => void; // callback สำหรับ save
 }
 
 export default function ScenarioSelector({
@@ -31,8 +37,73 @@ export default function ScenarioSelector({
     onSelectedScenarioChange,
     loadingScenarios,
     onDeleteScenario,
+    scenarioData,
+    loading = false,
+    onRefresh,
+    onSaveScenario,
 }: ScenarioSelectorProps) {
-    const handleSubmit = () => {};
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    const handleSubmit = async () => {
+        if (!selectedScenario || !scenarioData) {
+            alert('กรุณาเลือก scenario ก่อน');
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+
+            // เตรียมข้อมูลตามรูปแบบที่กำหนด
+            const saveData = {
+                scenario: {
+                    total_days: scenarioData.total_days || 30,
+                    max_possible_days: scenarioData.max_possible_days || 35,
+                    success_rate: scenarioData.success_rate || 0.85,
+                    total_cost: scenarioData.total_cost || 0,
+                    avg_cost_per_day: scenarioData.avg_cost_per_day || 0,
+                    avg_cost_per_ton: scenarioData.avg_cost_per_ton || 0,
+                    actual_production: scenarioData.actual_production || 0,
+                    target_production: scenarioData.target_production || 0,
+                    fitness: scenarioData.fitness || 0,
+                    start_date: scenarioData.productionPlan[0].date || null,
+                    end_date: scenarioData.productionPlan[scenarioData.productionPlan.length - 1].date || null,
+                    scenario_name: selectedScenario
+                },
+                products: scenarioData.products || []
+            };
+            console.log("Saving scenario data:", saveData);
+            const response = await fetch(apiEndpoints.saveScenario(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(saveData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`บันทึก scenario "${selectedScenario}" สำเร็จแล้ว`);
+                
+                // เรียก callback ถ้ามี
+                if (onSaveScenario) {
+                    onSaveScenario(selectedScenario, saveData);
+                }
+            } else {
+                throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
+            }
+
+        } catch (error) {
+            console.error('Save scenario error:', error);
+            alert(`เกิดข้อผิดพลาดในการบันทึก scenario: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
     return (
         <>
             {/* Scenario Selection Header */}
@@ -103,9 +174,19 @@ export default function ScenarioSelector({
                         </div>
                         <button
                             onClick={handleSubmit}
+                            disabled={!selectedScenario || !scenarioData || isSaving}
                             className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
-                            <Play className="h-4 w-4" /> ยืนยัน Scenario
+                            {isSaving ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    กำลังบันทึก...
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="h-4 w-4" /> ยืนยัน Scenario
+                                </>
+                            )}
                         </button>
                     </div>
                 </CardContent>
@@ -127,6 +208,15 @@ export default function ScenarioSelector({
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Show OptimizationResultTab when scenario is selected */}
+            {selectedScenario && (
+                <OptimizationResultTab 
+                    data={scenarioData} 
+                    loading={loading} 
+                    onRefresh={onRefresh || (() => {})}
+                />
             )}
         </>
     );

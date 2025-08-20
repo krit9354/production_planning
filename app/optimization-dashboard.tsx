@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, Package, Settings, Target, Database } from "lucide-react"
+import { Clock, Package, Settings, Target, Database, FileSpreadsheet } from "lucide-react"
 import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
 import ProductSelectionTab from "@/components/ProductSelectionTab"
 import ScenarioCompareTab from "@/components/ScenarioCompareTab"
 import ScenarioSelector from "@/components/ScenarioSelector"
+import ImportExportTab from "@/components/ImportExportTab"
 import { apiEndpoints } from "@/lib/api"
 import { 
   OptimizationData, 
@@ -238,7 +239,7 @@ export default function OptimizationDashboard() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid grid-cols-6">
+            <TabsList className="grid grid-cols-7">
               <TabsTrigger value="original" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Original Plan
@@ -263,6 +264,10 @@ export default function OptimizationDashboard() {
                 <Package className="h-4 w-4" />
                 Scenario Compare
               </TabsTrigger>
+              <TabsTrigger value="import-export" className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Import/Export
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -281,16 +286,10 @@ export default function OptimizationDashboard() {
               onSelectedScenarioChange={setSelectedScenario}
               loadingScenarios={loadingScenarios}
               onDeleteScenario={handleDeleteScenario}
+              scenarioData={scenarioData}
+              loading={loading}
+              onRefresh={() => fetchScenarioData(selectedScenario)}
             />
-
-            {/* Show OptimizationResultTab when scenario is selected */}
-            {selectedScenario && (
-              <OptimizationResultTab 
-                data={scenarioData} 
-                loading={loading} 
-                onRefresh={() => fetchScenarioData(selectedScenario)}
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="products" className="space-y-6">
@@ -320,6 +319,19 @@ export default function OptimizationDashboard() {
             <ScenarioCompareTab 
               loading={loading} 
               onRefresh={() => {}}
+            />
+          </TabsContent>
+
+          <TabsContent value="import-export" className="space-y-6">
+            <ImportExportTab 
+              loading={loading} 
+              onRefresh={() => {
+                // Refresh all data when import is successful
+                fetchOptimizationData()
+                fetchOriginalPlanData()
+                fetchProductsData()
+                fetchScenarios()
+              }}
             />
           </TabsContent>
         </Tabs>

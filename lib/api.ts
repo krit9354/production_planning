@@ -17,6 +17,13 @@ export const apiEndpoints = {
   // Optimizer status
   optimizerStatus: () => `${API_BASE_URL}/optimizer_status`,
   initializeOptimizer: () => `${API_BASE_URL}/initialize_optimizer`,
+  
+  // Import/Export
+  exportExcel: () => `${API_BASE_URL}/export-excel`,
+  importExcel: () => `${API_BASE_URL}/import-excel`,
+  
+  // Scenario save
+  saveScenario: () => `${API_BASE_URL}/save_scenario`,
 };
 
 export { API_BASE_URL };
