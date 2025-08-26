@@ -83,8 +83,8 @@ export default function CustomAdjustmentTab({
 
     // Create options for each pulp type
     const pulpAOptions = createPercentageOptions(100); // 0-100
-    const pulpBOptions = createPercentageOptions(75);  // 0-75  
-    const pulpCOptions = createPercentageOptions(50);  // 0-50
+    const pulpBOptions = createPercentageOptions(50);  // 0-50
+    const pulpCOptions = createPercentageOptions(75);  // 0-75
 
     // Fetch scenarios from API
     const fetchScenarios = async () => {
