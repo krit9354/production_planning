@@ -69,7 +69,8 @@ export default function ScenarioSelector({
                     end_date: scenarioData.productionPlan[scenarioData.productionPlan.length - 1].date || null,
                     scenario_name: selectedScenario
                 },
-                products: scenarioData.products || []
+                products: scenarioData.products || [],
+                inventoryData: scenarioData.inventoryData || []
             };
             console.log("Saving scenario data:", saveData);
             const response = await fetch(apiEndpoints.saveScenario(), {

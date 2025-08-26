@@ -26,6 +26,7 @@ import {
     Bar,
     ComposedChart,
 } from "recharts";
+import ReactECharts from 'echarts-for-react';
 import {
     Calendar,
     DollarSign,
@@ -44,7 +45,7 @@ interface OptimizationResultTabProps {
 export default function OptimizationResultTab({
     data,
 }: OptimizationResultTabProps) {
-    // Mock data สำหรับ fallbac
+    // Mock data สำหรับ fallback
 
     // Process inventory data to extract delivery amounts by pulp type
     const processedInventoryData =
@@ -76,6 +77,262 @@ export default function OptimizationResultTab({
                 delivery_pulp_c,
             };
         }) || [];
+
+    // Mock actual data - สำหรับกลางเวลาของข้อมูล predicted
+    const createMockActualData = (predictedData: any[]) => {
+        if (!predictedData || predictedData.length === 0) return [];
+        
+        const midPoint = Math.floor(predictedData.length / 2);
+        return predictedData.slice(0, midPoint).map((item, index) => ({
+            ...item,
+            // เพิ่มความผันแปรเล็กน้อยจาก predicted
+            actual_eucalyptus: (item?.eucalyptus || 0) * (0.9 + Math.random() * 0.2),
+            actual_pulp_a: (item?.pulp_a || 0) * (0.85 + Math.random() * 0.3),
+            actual_pulp_b: (item?.pulp_b || 0) * (0.88 + Math.random() * 0.24),
+            actual_pulp_c: (item?.pulp_c || 0) * (0.92 + Math.random() * 0.16),
+        }));
+    };
+
+    const actualInventoryData = createMockActualData(processedInventoryData);
+
+    // Prepare data for ECharts
+    const prepareChartData = () => {
+        if (!processedInventoryData || processedInventoryData.length === 0) return { dates: [], series: [] };
+
+        const dates = processedInventoryData.map(item => item?.date || '');
+        
+        const series = [
+            // Predicted lines
+            {
+                name: 'Eucalyptus (Predicted)',
+                type: 'line',
+                data: processedInventoryData.map(item => item?.eucalyptus || 0),
+                lineStyle: { color: '#8b5cf6', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp A (Predicted)',
+                type: 'line',
+                data: processedInventoryData.map(item => item?.pulp_a || 0),
+                lineStyle: { color: '#82ca9d', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp B (Predicted)',
+                type: 'line',
+                data: processedInventoryData.map(item => item?.pulp_b || 0),
+                lineStyle: { color: '#ffc658', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp C (Predicted)',
+                type: 'line',
+                data: processedInventoryData.map(item => item?.pulp_c || 0),
+                lineStyle: { color: '#ff7300', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            // Actual lines (dashed)
+            {
+                name: 'Eucalyptus (Actual)',
+                type: 'line',
+                data: processedInventoryData.map((item, index) => {
+                    const actualItem = actualInventoryData[index];
+                    return actualItem?.actual_eucalyptus || null;
+                }),
+                lineStyle: { 
+                    color: '#8b5cf6', 
+                    width: 3, 
+                    type: 'dashed',
+                    opacity: 0.8 
+                },
+                symbol: 'diamond',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp A (Actual)',
+                type: 'line',
+                data: processedInventoryData.map((item, index) => {
+                    const actualItem = actualInventoryData[index];
+                    return actualItem?.actual_pulp_a || null;
+                }),
+                lineStyle: { 
+                    color: '#82ca9d', 
+                    width: 3, 
+                    type: 'dashed',
+                    opacity: 0.8 
+                },
+                symbol: 'diamond',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp B (Actual)',
+                type: 'line',
+                data: processedInventoryData.map((item, index) => {
+                    const actualItem = actualInventoryData[index];
+                    return actualItem?.actual_pulp_b || null;
+                }),
+                lineStyle: { 
+                    color: '#ffc658', 
+                    width: 3, 
+                    type: 'dashed',
+                    opacity: 0.8 
+                },
+                symbol: 'diamond',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp C (Actual)',
+                type: 'line',
+                data: processedInventoryData.map((item, index) => {
+                    const actualItem = actualInventoryData[index];
+                    return actualItem?.actual_pulp_c || null;
+                }),
+                lineStyle: { 
+                    color: '#ff7300', 
+                    width: 3, 
+                    type: 'dashed',
+                    opacity: 0.8 
+                },
+                symbol: 'diamond',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            // Delivery bars
+            {
+                name: 'ส่งมอบ Pulp A',
+                type: 'bar',
+                data: processedInventoryData.map(item => item?.delivery_pulp_a || 0),
+                itemStyle: { color: '#82ca9d', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+            {
+                name: 'ส่งมอบ Pulp B',
+                type: 'bar',
+                data: processedInventoryData.map(item => item?.delivery_pulp_b || 0),
+                itemStyle: { color: '#ffc658', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+            {
+                name: 'ส่งมอบ Pulp C',
+                type: 'bar',
+                data: processedInventoryData.map(item => item?.delivery_pulp_c || 0),
+                itemStyle: { color: '#ff7300', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+        ];
+
+        return { dates, series };
+    };
+
+    const chartData = prepareChartData();
+
+    const getEChartsOption = () => {
+        const chartData = prepareChartData();
+        
+        if (!chartData.dates || chartData.dates.length === 0) {
+            return {
+                title: {
+                    text: 'ไม่มีข้อมูลแสดง',
+                    left: 'center'
+                }
+            };
+        }
+        
+        return {
+            title: {
+                text: '',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                },
+                formatter: function(params: any) {
+                    if (!params || !Array.isArray(params) || params.length === 0) {
+                        return '';
+                    }
+                    
+                    let result = `วันที่ ${params[0]?.axisValue || ''}<br/>`;
+                    params.forEach((param: any) => {
+                        if (param && param.value !== null && param.value !== undefined && param.value !== 0) {
+                            const value = typeof param.value === 'number' ? param.value : parseFloat(param.value);
+                            if (!isNaN(value)) {
+                                result += `${param.marker || ''} ${param.seriesName || ''}: ${value.toFixed(2)} ตัน<br/>`;
+                            }
+                        }
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                type: 'scroll',
+                orient: 'horizontal',
+                left: 'center',
+                top: 'bottom',
+                selected: {
+                    // เริ่มต้นแสดงทั้ง predicted และ actual lines พร้อม delivery bars
+                    'Eucalyptus (Predicted)': true,
+                    'Pulp A (Predicted)': true,
+                    'Pulp B (Predicted)': true,
+                    'Pulp C (Predicted)': true,
+                    'Eucalyptus  (Actual)': true,
+                    'Pulp A (Actual)': true,
+                    'Pulp B (Actual)': true,
+                    'Pulp C (Actual)': true,
+                    'ส่งมอบ Pulp A': true,
+                    'ส่งมอบ Pulp B': true,
+                    'ส่งมอบ Pulp C': true,
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: chartData.dates,
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            yAxis: [
+                {
+                    type: 'value',
+                    name: 'Stock (ตัน)',
+                    position: 'left',
+                    axisLabel: {
+                        formatter: '{value} ตัน'
+                    }
+                },
+                {
+                    type: 'value',
+                    name: 'Delivery (ตัน)',
+                    position: 'right',
+                    axisLabel: {
+                        formatter: '{value} ตัน'
+                    }
+                }
+            ],
+            series: chartData.series || [],
+            animationDuration: 1000,
+            animationEasing: 'cubicOut'
+        };
+    };
 
     if (!data) {
         return (
@@ -175,10 +432,16 @@ export default function OptimizationResultTab({
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-center font-semibold">
+                                    Brand
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
                                     Product Type
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
-                                    Product
+                                    Thickness
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Channel
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
                                     Formula
@@ -212,19 +475,17 @@ export default function OptimizationResultTab({
                                         key={product.name || index}
                                         className="hover:bg-gray-50"
                                     >
-                                        <TableCell className="text-center font-bold text-purple-600 text-sm">
-                                            {product.type}
+                                        <TableCell className="text-center font-bold text-blue-600 text-sm">
+                                            {product.brand}
                                         </TableCell>
-                                        <TableCell
-                                            className="text-center font-bold text-blue-600 text-sm"
-                                            title={product.name}
-                                        >
-                                            {product.name?.length > 30
-                                                ? `${product.name.substring(
-                                                      0,
-                                                      30
-                                                  )}...`
-                                                : product.name}
+                                        <TableCell className="text-center font-bold text-purple-600 text-sm">
+                                            {product.product_group}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-sm">
+                                            {product.thickness}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-sm">
+                                            {product.channel}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge
@@ -298,7 +559,10 @@ export default function OptimizationResultTab({
                         <TableHeader>
                             <TableRow>
                                 <TableHead>วัน</TableHead>
-                                <TableHead>ผลิตภัณฑ์</TableHead>
+                                <TableHead>Brand</TableHead>
+                                <TableHead>Product Type</TableHead>
+                                <TableHead>Thickness</TableHead>
+                                <TableHead>Channel</TableHead>
                                 <TableHead>Formula</TableHead>
                                 <TableHead>ปริมาณเป้าหมาย (ตัน)</TableHead>
                                 <TableHead>ปริมาณที่ผลิตได้ (ตัน)</TableHead>
@@ -317,16 +581,17 @@ export default function OptimizationResultTab({
                                             <TableCell className="font-medium">
                                                 {plan.date}
                                             </TableCell>
-                                            <TableCell
-                                                className="max-w-xs truncate"
-                                                title={plan.product}
-                                            >
-                                                {plan.product?.length > 40
-                                                    ? `${plan.product.substring(
-                                                          0,
-                                                          40
-                                                      )}...`
-                                                    : plan.product}
+                                            <TableCell className="text-center font-bold text-blue-600 text-sm">
+                                                {plan.product_group?.[0] || 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-center font-bold text-purple-600 text-sm">
+                                                {plan.product_group?.[1] || 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-center font-semibold text-sm">
+                                                {plan.product_group?.[2] || 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-center font-semibold text-sm">
+                                                {plan.product_group?.[3] || 'N/A'}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
@@ -395,151 +660,30 @@ export default function OptimizationResultTab({
                 </CardContent>
             </Card>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Material Inventory Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <TrendingDown className="h-5 w-5" />
-                            Material Inventory Trend
-                        </CardTitle>
-                        <CardDescription>
-                            แนวโน้มการใช้วัตถุดิบ Eucalyptus และ Pulp แต่ละวัน
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={processedInventoryData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
-                                <YAxis yAxisId="left" />
-                                <YAxis yAxisId="right" orientation="right" />
-                                <Tooltip
-                                    formatter={(value: number | string, name: string) => {
-                                        if (
-                                            (name.includes("delivery_") ||
-                                                name.includes("ส่งมอบ")) &&
-                                            parseFloat(String(value)) === 0
-                                        ) {
-                                            return [null, null];
-                                        }
+            {/* Material Inventory Chart - Full Width */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingDown className="h-5 w-5" />
+                        Material Inventory Trend
+                    </CardTitle>
+                    <CardDescription>
+                        แนวโน้มการใช้วัตถุดิบ Eucalyptus และ Pulp แต่ละวัน (สีเส้นทึบ = Predicted, เส้นประ = Actual)
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div style={{ width: '100%', height: '500px' }}>
+                        <ReactECharts 
+                            option={getEChartsOption()} 
+                            style={{ height: '100%', width: '100%' }}
+                            theme="default"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
-                                        let displayName = name;
-                                        switch (name) {
-                                            case "eucalyptus":
-                                                displayName =
-                                                    "Eucalyptus คงเหลือ";
-                                                break;
-                                            case "pulp_a":
-                                                displayName = "Pulp A คงเหลือ";
-                                                break;
-                                            case "pulp_b":
-                                                displayName = "Pulp B คงเหลือ";
-                                                break;
-                                            case "pulp_c":
-                                                displayName = "Pulp C คงเหลือ";
-                                                break;
-                                            case "delivery_pulp_a":
-                                                displayName = "ส่งมอบ Pulp A";
-                                                break;
-                                            case "delivery_pulp_b":
-                                                displayName = "ส่งมอบ Pulp B";
-                                                break;
-                                            case "delivery_pulp_c":
-                                                displayName = "ส่งมอบ Pulp C";
-                                                break;
-                                            default:
-                                                displayName = name;
-                                        }
-                                        return [
-                                            `${parseFloat(String(value)).toFixed(
-                                                2
-                                            )} ตัน`,
-                                            displayName,
-                                        ];
-                                    }}
-                                    labelFormatter={(label) =>
-                                        `วันที่ ${label}`
-                                    }
-                                />
-                                <Bar
-                                    yAxisId="right"
-                                    dataKey="delivery_pulp_a"
-                                    fill="#82ca9d"
-                                    name="ส่งมอบ Pulp A"
-                                    opacity={0.8}
-                                />
-                                <Bar
-                                    yAxisId="right"
-                                    dataKey="delivery_pulp_b"
-                                    fill="#ffc658"
-                                    name="ส่งมอบ Pulp B"
-                                    opacity={0.8}
-                                />
-                                <Bar
-                                    yAxisId="right"
-                                    dataKey="delivery_pulp_c"
-                                    fill="#ff7300"
-                                    name="ส่งมอบ Pulp C"
-                                    opacity={0.8}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="eucalyptus"
-                                    stroke="#8b5cf6"
-                                    strokeWidth={3}
-                                    name="Eucalyptus คงเหลือ"
-                                    dot={{
-                                        fill: "#8b5cf6",
-                                        strokeWidth: 2,
-                                        r: 4,
-                                    }}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="pulp_a"
-                                    stroke="#82ca9d"
-                                    strokeWidth={3}
-                                    name="Pulp A คงเหลือ"
-                                    dot={{
-                                        fill: "#82ca9d",
-                                        strokeWidth: 2,
-                                        r: 4,
-                                    }}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="pulp_b"
-                                    stroke="#ffc658"
-                                    strokeWidth={3}
-                                    name="Pulp B คงเหลือ"
-                                    dot={{
-                                        fill: "#ffc658",
-                                        strokeWidth: 2,
-                                        r: 4,
-                                    }}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="pulp_c"
-                                    stroke="#ff7300"
-                                    strokeWidth={3}
-                                    name="Pulp C คงเหลือ"
-                                    dot={{
-                                        fill: "#ff7300",
-                                        strokeWidth: 2,
-                                        r: 4,
-                                    }}
-                                />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+            {/* Other Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Cost per Ton Chart */}
                 <Card>

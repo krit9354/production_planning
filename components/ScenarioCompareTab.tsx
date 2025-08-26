@@ -23,6 +23,7 @@ import {
     Bar,
     ComposedChart,
 } from "recharts";
+import ReactECharts from 'echarts-for-react';
 import {
     DollarSign,
     Package,
@@ -143,6 +144,160 @@ export default function ScenarioCompareTab({
 
     const scenario1ProcessedInventoryData = processInventoryData(scenario1Data);
     const scenario2ProcessedInventoryData = processInventoryData(scenario2Data);
+
+    // Prepare data for ECharts
+    const prepareChartData = (processedData: any[]) => {
+        if (!processedData || processedData.length === 0) return { dates: [], series: [] };
+
+        const dates = processedData.map(item => item?.date || '');
+        
+        const series = [
+            // Stock lines
+            {
+                name: 'Eucalyptus',
+                type: 'line',
+                data: processedData.map(item => item?.eucalyptus || 0),
+                lineStyle: { color: '#8b5cf6', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp A',
+                type: 'line',
+                data: processedData.map(item => item?.pulp_a || 0),
+                lineStyle: { color: '#82ca9d', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp B',
+                type: 'line',
+                data: processedData.map(item => item?.pulp_b || 0),
+                lineStyle: { color: '#ffc658', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            {
+                name: 'Pulp C',
+                type: 'line',
+                data: processedData.map(item => item?.pulp_c || 0),
+                lineStyle: { color: '#ff7300', width: 3 },
+                symbol: 'circle',
+                symbolSize: 6,
+                yAxisIndex: 0,
+            },
+            // Delivery bars
+            {
+                name: 'ส่งมอบ Pulp A',
+                type: 'bar',
+                data: processedData.map(item => item?.delivery_pulp_a || 0),
+                itemStyle: { color: '#82ca9d', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+            {
+                name: 'ส่งมอบ Pulp B',
+                type: 'bar',
+                data: processedData.map(item => item?.delivery_pulp_b || 0),
+                itemStyle: { color: '#ffc658', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+            {
+                name: 'ส่งมอบ Pulp C',
+                type: 'bar',
+                data: processedData.map(item => item?.delivery_pulp_c || 0),
+                itemStyle: { color: '#ff7300', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
+        ];
+
+        return { dates, series };
+    };
+
+    const getEChartsOption = (processedData: any[], title: string) => {
+        const chartData = prepareChartData(processedData);
+        
+        if (!chartData.dates || chartData.dates.length === 0) {
+            return {
+                title: {
+                    text: 'ไม่มีข้อมูลแสดง',
+                    left: 'center'
+                }
+            };
+        }
+        
+        return {
+            title: {
+                text: '',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                },
+                formatter: function(params: any) {
+                    if (!params || !Array.isArray(params) || params.length === 0) {
+                        return '';
+                    }
+                    
+                    let result = `วันที่ ${params[0]?.axisValue || ''}<br/>`;
+                    params.forEach((param: any) => {
+                        if (param && param.value !== null && param.value !== undefined && param.value !== 0) {
+                            const value = typeof param.value === 'number' ? param.value : parseFloat(param.value);
+                            if (!isNaN(value)) {
+                                result += `${param.marker || ''} ${param.seriesName || ''}: ${value.toFixed(2)} ตัน<br/>`;
+                            }
+                        }
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                type: 'scroll',
+                orient: 'horizontal',
+                left: 'center',
+                top: 'bottom',
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: chartData.dates,
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            yAxis: [
+                {
+                    type: 'value',
+                    name: 'Stock (ตัน)',
+                    position: 'left',
+                    axisLabel: {
+                        formatter: '{value} ตัน'
+                    }
+                },
+                {
+                    type: 'value',
+                    name: 'Delivery (ตัน)',
+                    position: 'right',
+                    axisLabel: {
+                        formatter: '{value} ตัน'
+                    }
+                }
+            ],
+            series: chartData.series || [],
+            animationDuration: 1000,
+            animationEasing: 'cubicOut'
+        };
+    };
 
     return (
         <div className="space-y-6">
@@ -310,7 +465,7 @@ export default function ScenarioCompareTab({
                         </CardContent>
                     </Card>
 
-                    {/* Material Inventory Charts */}
+                    {/* Material Inventory Charts - Full Width */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -322,64 +477,13 @@ export default function ScenarioCompareTab({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <ComposedChart data={scenario1ProcessedInventoryData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis yAxisId="left" />
-                                    <YAxis yAxisId="right" orientation="right" />
-                                    <Tooltip
-                                        formatter={(value: number | string, name: string) => {
-                                            let displayName = name;
-                                            switch (name) {
-                                                case "eucalyptus": displayName = "Eucalyptus คงเหลือ"; break;
-                                                case "pulp_a": displayName = "Pulp A คงเหลือ"; break;
-                                                case "pulp_b": displayName = "Pulp B คงเหลือ"; break;
-                                                case "pulp_c": displayName = "Pulp C คงเหลือ"; break;
-                                                default: displayName = name;
-                                            }
-                                            return [`${parseFloat(String(value)).toFixed(2)} ตัน`, displayName];
-                                        }}
-                                        labelFormatter={(label) => `วันที่ ${label}`}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="eucalyptus"
-                                        stroke="#8b5cf6"
-                                        strokeWidth={3}
-                                        name="Eucalyptus คงเหลือ"
-                                        dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_a"
-                                        stroke="#82ca9d"
-                                        strokeWidth={3}
-                                        name="Pulp A คงเหลือ"
-                                        dot={{ fill: "#82ca9d", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_b"
-                                        stroke="#ffc658"
-                                        strokeWidth={3}
-                                        name="Pulp B คงเหลือ"
-                                        dot={{ fill: "#ffc658", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_c"
-                                        stroke="#ff7300"
-                                        strokeWidth={3}
-                                        name="Pulp C คงเหลือ"
-                                        dot={{ fill: "#ff7300", strokeWidth: 2, r: 4 }}
-                                    />
-                                </ComposedChart>
-                            </ResponsiveContainer>
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <ReactECharts 
+                                    option={getEChartsOption(scenario1ProcessedInventoryData, selectedScenario1)} 
+                                    style={{ height: '100%', width: '100%' }}
+                                    theme="default"
+                                />
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -394,64 +498,13 @@ export default function ScenarioCompareTab({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <ComposedChart data={scenario2ProcessedInventoryData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis yAxisId="left" />
-                                    <YAxis yAxisId="right" orientation="right" />
-                                    <Tooltip
-                                        formatter={(value: number | string, name: string) => {
-                                            let displayName = name;
-                                            switch (name) {
-                                                case "eucalyptus": displayName = "Eucalyptus คงเหลือ"; break;
-                                                case "pulp_a": displayName = "Pulp A คงเหลือ"; break;
-                                                case "pulp_b": displayName = "Pulp B คงเหลือ"; break;
-                                                case "pulp_c": displayName = "Pulp C คงเหลือ"; break;
-                                                default: displayName = name;
-                                            }
-                                            return [`${parseFloat(String(value)).toFixed(2)} ตัน`, displayName];
-                                        }}
-                                        labelFormatter={(label) => `วันที่ ${label}`}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="eucalyptus"
-                                        stroke="#8b5cf6"
-                                        strokeWidth={3}
-                                        name="Eucalyptus คงเหลือ"
-                                        dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_a"
-                                        stroke="#82ca9d"
-                                        strokeWidth={3}
-                                        name="Pulp A คงเหลือ"
-                                        dot={{ fill: "#82ca9d", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_b"
-                                        stroke="#ffc658"
-                                        strokeWidth={3}
-                                        name="Pulp B คงเหลือ"
-                                        dot={{ fill: "#ffc658", strokeWidth: 2, r: 4 }}
-                                    />
-                                    <Line
-                                        yAxisId="left"
-                                        type="monotone"
-                                        dataKey="pulp_c"
-                                        stroke="#ff7300"
-                                        strokeWidth={3}
-                                        name="Pulp C คงเหลือ"
-                                        dot={{ fill: "#ff7300", strokeWidth: 2, r: 4 }}
-                                    />
-                                </ComposedChart>
-                            </ResponsiveContainer>
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <ReactECharts 
+                                    option={getEChartsOption(scenario2ProcessedInventoryData, selectedScenario2)} 
+                                    style={{ height: '100%', width: '100%' }}
+                                    theme="default"
+                                />
+                            </div>
                         </CardContent>
                     </Card>
 
