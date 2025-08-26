@@ -44,26 +44,30 @@ export interface PulpRatios {
 
 export interface Product {
   id?: string
-  type: string
+  brand?: string
+  product_group: string  // เปลี่ยนจาก type เป็น product_group
+  thickness?: string
+  channel?: string
   name: string
   formula: string
   ratios: PulpRatios
   target_quantity: number
   unit?: string
+  is_optimized?: boolean
 }
 
 export interface ProductGroup {
-  [productGroup: string]: string[]
+  [combinedKey: string]: string[]
 }
 
 export interface ProductsData {
-  [productType: string]: ProductGroup
+  [brand: string]: ProductGroup
 }
 
 // Formula Data Types
 export interface FormulaData {
-  [productType: string]: {
-    [productName: string]: string[]
+  [brand: string]: {
+    [combinedKey: string]: string[]
   }
 }
 
@@ -116,10 +120,13 @@ export interface ProductionPlanItem {
   day: number
   date?: string
   product: string
+  product_group: [string, string, string, string] // [brand, product_group, thickness, channel]
   formula: string
   quantity: number
   target_quantity: number
-  rawMaterials: Record<string, number>
+  max_product_ratio?: number
+  rawMaterials?: Record<string, number>
+  pulpMaterials?: Record<string, number>
 }
 
 export interface DataPerDay {

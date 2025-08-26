@@ -28,9 +28,12 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
   const getAllProductGroups = () => {
     if (!productsData) return []
     const productGroups: string[] = []
-    Object.keys(productsData).forEach(productType => {
-      Object.keys(productsData[productType]).forEach(productGroup => {
-        const productGroupKey = `${productType}|${productGroup}`
+    
+    // รองรับ structure ใหม่ที่เป็น brand -> { "product_group|thickness|channel": data }
+    Object.keys(productsData).forEach(brand => {
+      Object.keys(productsData[brand]).forEach(combinedKey => {
+        // combinedKey มีรูปแบบ "product_group|thickness|channel"
+        const productGroupKey = `${brand}|${combinedKey}`
         productGroups.push(productGroupKey)
       })
     })
@@ -236,29 +239,31 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             </Button>
           </div>
 
-          {/* Products Grid - Grouped by Type */}
+          {/* Products Grid - Grouped by Brand */}
           {productsData ? (
             <div className="space-y-8">
-              {Object.keys(productsData).map((productType) => (
-                <div key={productType} className="space-y-4">
-                  {/* Product Type Header */}
+              {Object.keys(productsData).map((brand) => (
+                <div key={brand} className="space-y-4">
+                  {/* Brand Header */}
                   <div className="border-b-2 border-purple-200 pb-2">
-                    <h2 className="text-xl font-bold text-purple-800">{productType}</h2>
+                    <h2 className="text-xl font-bold text-purple-800">{brand}</h2>
                     <p className="text-sm text-gray-600">
-                      {Object.keys(productsData[productType]).length} Product Groups
+                      {Object.keys(productsData[brand]).length} Product Combinations
                     </p>
                   </div>
                   
-                  {/* Product Groups Grid */}
+                  {/* Product Combinations Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {Object.keys(productsData[productType]).map((productGroupName) => {
-                      const formulas = productsData[productType][productGroupName]
-                      const productGroupKey = `${productType}|${productGroupName}`
+                    {Object.keys(productsData[brand]).map((combinedKey) => {
+                      // combinedKey มีรูปแบบ "product_group|thickness|channel"
+                      const [productGroup, thickness, channel] = combinedKey.split('|')
+                      const formulas = productsData[brand][combinedKey]
+                      const productGroupKey = `${brand}|${combinedKey}`
                       const isSelected = selectedProducts.includes(productGroupKey)
                       
                       return (
                         <div
-                          key={`${productType}-${productGroupName}`}
+                          key={`${brand}-${combinedKey}`}
                           onClick={() => toggleProduct(productGroupKey)}
                           className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
                             isSelected 
@@ -269,8 +274,14 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
                               <h3 className="font-semibold text-sm leading-tight mb-1">
-                                {productGroupName}
+                                {productGroup}
                               </h3>
+                              <p className="text-xs text-gray-500 mb-1">
+                                {thickness && `หนา: ${thickness}`}
+                              </p>
+                              <p className="text-xs text-gray-500 mb-1">
+                                {channel && `ช่องทาง: ${channel}`}
+                              </p>
                               <p className="text-xs text-gray-600">
                                 {formulas.length} formulas
                               </p>

@@ -31,6 +31,10 @@ export default function OptimizationDashboard() {
   const [selectedScenario, setSelectedScenario] = useState<string>("")
   const [loadingScenarios, setLoadingScenarios] = useState(false)
 
+  // Warnings state
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [loadingWarnings, setLoadingWarnings] = useState(false)
+
   // Fetch time optimization data from API
   const fetchOptimizationData = async () => {
     try {
@@ -121,12 +125,32 @@ export default function OptimizationDashboard() {
     }
   }
 
+  // Fetch warnings data
+  const fetchWarnings = async () => {
+    try {
+      setLoadingWarnings(true)
+      const response = await axios.get(apiEndpoints.getWarnings())
+      if (response.data && Array.isArray(response.data.data.warnings)) {
+        setWarnings(response.data.data.warnings)
+      } else {
+        setWarnings([])
+      }
+    } catch (error: unknown) {
+      console.error('Error fetching warnings:', error)
+      setWarnings([])
+    } finally {
+      setLoadingWarnings(false)
+    }
+    console.log("Warnings state:", warnings)
+  }
+
   // Load data on component mount
   useEffect(() => {
     fetchOptimizationData()
     fetchOriginalPlanData()
     fetchProductsData()
     fetchScenarios()
+    fetchWarnings()
   }, [])
 
   // Auto load scenario data when selected scenario changes
@@ -234,6 +258,22 @@ export default function OptimizationDashboard() {
               </div>
             </div>
           )}
+          
+          {/* Warnings message */}
+          {warnings.length > 0 && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mx-auto max-w-4xl">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm mb-2">⚠️ คำเตือน:</h3>
+                  <ul className="text-sm space-y-1 pl-4">
+                    {warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -248,10 +288,6 @@ export default function OptimizationDashboard() {
                 <Clock className="h-4 w-4" />
                 Optimization
               </TabsTrigger>
-              <TabsTrigger value="scenario" className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Scenario Results
-              </TabsTrigger>
               <TabsTrigger value="products" className="flex items-center gap-2">
                 <Target className="h-4 w-4" />
                 Product Selection
@@ -263,6 +299,10 @@ export default function OptimizationDashboard() {
               <TabsTrigger value="compare" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Scenario Compare
+              </TabsTrigger>
+              <TabsTrigger value="scenario" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Scenario Results
               </TabsTrigger>
               <TabsTrigger value="import-export" className="flex items-center gap-2">
                 <FileSpreadsheet className="h-4 w-4" />

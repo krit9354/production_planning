@@ -212,7 +212,12 @@ export default function CustomAdjustmentTab({
             const settings: { [key: string]: { formula: string; pulp_ratios: { Pulp_A: number; Pulp_B: number; Pulp_C: number; Eucalyptus: number } } } = {};
             
             customRatios.forEach((product) => {
-                settings[`${product.type}|${product.name}`] = {
+                // สร้าง key ที่รวม brand|product_group|thickness|channel หรือใช้แค่ product_group|name สำหรับ backward compatibility
+                const productKey = product.brand && product.thickness && product.channel 
+                    ? `${product.brand}|${product.product_group}|${product.thickness}|${product.channel}`
+                    : `${product.product_group}|${product.name}`;
+                
+                settings[productKey] = {
                     formula: product.formula,
                     pulp_ratios: {
                         Pulp_A: product.ratios?.Pulp_A || 0,
@@ -460,10 +465,16 @@ export default function CustomAdjustmentTab({
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-center font-semibold">
+                                    Brand
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
                                     Product Type
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
-                                    Product
+                                    Thickness
+                                </TableHead>
+                                <TableHead className="text-center font-semibold">
+                                    Channel
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
                                     Formula
@@ -503,24 +514,32 @@ export default function CustomAdjustmentTab({
                                             style={{ borderBottom: "none" }}
                                         >
                                             <TableCell
+                                                className="text-center font-bold text-blue-600 text-sm"
+                                                style={{ borderBottom: "none" }}
+                                                rowSpan={2}
+                                            >
+                                                {product.brand}
+                                            </TableCell>
+                                            <TableCell
                                                 className="text-center font-bold text-purple-600 text-sm"
                                                 style={{ borderBottom: "none" }}
                                                 rowSpan={2}
                                             >
-                                                {product.type}
+                                                {product.product_group}
                                             </TableCell>
                                             <TableCell
-                                                className="text-center font-bold text-blue-600 text-sm"
+                                                className="text-center font-semibold text-sm"
                                                 style={{ borderBottom: "none" }}
-                                                title={product.name}
                                                 rowSpan={2}
                                             >
-                                                {product.name?.length > 30
-                                                    ? `${product.name.substring(
-                                                          0,
-                                                          30
-                                                      )}...`
-                                                    : product.name}
+                                                {product.thickness}
+                                            </TableCell>
+                                            <TableCell
+                                                className="text-center font-semibold text-sm"
+                                                style={{ borderBottom: "none" }}
+                                                rowSpan={2}
+                                            >
+                                                {product.channel}
                                             </TableCell>
                                             <TableCell
                                                 className="text-center"
@@ -618,9 +637,9 @@ export default function CustomAdjustmentTab({
                                                     disabled={loadingFormulas}
                                                     className="w-24 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    {product.name && formulaData[product.type][product.name] ? 
-                                                        formulaData[product.type][product.name].map((formula: string, formulaIndex: number) => (
-                                                            <option key={`${index}-${formulaIndex}-${formula}`} value={formula}>
+                                                    {product.brand && formulaData[product.brand] && formulaData[product.brand][product.product_group+"|"+product.thickness+"|"+product.channel] ? 
+                                                        formulaData[product.brand][product.product_group+"|"+product.thickness+"|"+product.channel].map((formula: string, formulaIndex: number) => (
+                                                            <option key={`${index}|${formulaIndex}-${formula}`} value={formula}>
                                                                 {formula}
                                                             </option>
                                                         )) : (

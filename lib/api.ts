@@ -24,6 +24,9 @@ export const apiEndpoints = {
   
   // Scenario save
   saveScenario: () => `${API_BASE_URL}/save_scenario`,
+  
+  // Warnings
+  getWarnings: () => `${API_BASE_URL}/get_warnings`,
 };
 
 export { API_BASE_URL };
