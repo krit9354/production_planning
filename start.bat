@@ -1,4 +1,3 @@
-@echo off
-cd /d D:\your_project\nextjs
+cd D:\krit\pulp_kitchen\production_planning
 set PORT=88
-call npm run start
+call npm run dev
