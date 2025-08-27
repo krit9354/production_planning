@@ -500,7 +500,9 @@ export default function CustomAdjustmentTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customRatios.map((product, index) => {
+                            {customRatios
+                                .filter((product) => product.target_quantity > 0)
+                                .map((product, index) => {
                                 const isValid = validateRatios(product);
                                 const originalRatios =
                                     getOriginalRatios(product);
