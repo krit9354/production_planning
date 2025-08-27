@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { apiEndpoints } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,40 +38,19 @@ import { OptimizationData, safeCalculation, InventoryItem, Delivery } from "@/li
 interface ScenarioCompareTabProps {
     onRefresh: () => void;
     loading: boolean;
+    scenarios: string[];
+    loadingScenarios: boolean;
 }
 
 export default function ScenarioCompareTab({
+    scenarios,
+    loadingScenarios,
 }: ScenarioCompareTabProps) {
     const [selectedScenario1, setSelectedScenario1] = useState<string>("");
     const [selectedScenario2, setSelectedScenario2] = useState<string>("");
     const [scenario1Data, setScenario1Data] = useState<OptimizationData | null>(null);
     const [scenario2Data, setScenario2Data] = useState<OptimizationData | null>(null);
     const [comparing, setComparing] = useState<boolean>(false);
-    
-    // API states
-    const [scenarios, setScenarios] = useState<string[]>([]);
-    const [loadingScenarios, setLoadingScenarios] = useState(false);
-
-    // Fetch scenarios from API
-    const fetchScenarios = async () => {
-        setLoadingScenarios(true);
-        try {
-            const response = await axios.get(apiEndpoints.getScenarios());
-            if (response.data && Array.isArray(response.data)) {
-                setScenarios(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching scenarios:', error);
-            setScenarios([]);
-        } finally {
-            setLoadingScenarios(false);
-        }
-    };
-
-    // Load scenarios on component mount
-    useEffect(() => {
-        fetchScenarios();
-    }, []);
 
     // Fetch scenario data from API
     const fetchScenarioData = async (scenarioName: string) => {

@@ -336,7 +336,7 @@ export default function OptimizationDashboard() {
             <ProductSelectionTab 
               productsData={productsData}
               loading={loading} 
-              onRefresh={fetchProductsData}
+              onRefresh={fetchScenarios}
             />
           </TabsContent>
 
@@ -352,6 +352,8 @@ export default function OptimizationDashboard() {
             <CustomAdjustmentTab 
               loading={loading} 
               onRefresh={fetchScenarios}
+              scenarios={scenarios}
+              loadingScenarios={loadingScenarios}
             />
           </TabsContent>
 
@@ -359,6 +361,8 @@ export default function OptimizationDashboard() {
             <ScenarioCompareTab 
               loading={loading} 
               onRefresh={() => {}}
+              scenarios={scenarios}
+              loadingScenarios={loadingScenarios}
             />
           </TabsContent>
 

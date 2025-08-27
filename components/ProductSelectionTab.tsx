@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Circle, Play, RefreshCw } from "lucide-react"
+import { CheckCircle, Circle, Play, RefreshCw, Info } from "lucide-react"
 import OptimizationResultTab from "./OptimizationResultTab"
 import { apiEndpoints } from "@/lib/api"
 import { ProductsData, OptimizationData } from "@/lib/types"
@@ -16,6 +16,15 @@ interface ProductSelectionTabProps {
   onRefresh: () => void
 }
 
+interface DefaultSelectionData {
+  selected_products: string[]
+  scenario_info: {
+    id: number
+    name: string
+    time: string
+  } | null
+}
+
 export default function ProductSelectionTab({ productsData, loading, onRefresh }: ProductSelectionTabProps) {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [scenarioName, setScenarioName] = useState<string>("")
@@ -23,6 +32,38 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
   const [optimizing, setOptimizing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [defaultSelectionInfo, setDefaultSelectionInfo] = useState<DefaultSelectionData | null>(null)
+  const [loadingDefaults, setLoadingDefaults] = useState(false)
+
+  // Load default selection from latest scenario
+  const loadDefaultSelection = async () => {
+    setLoadingDefaults(true)
+    try {
+      const response = await axios.get(apiEndpoints.getDefaultSelection())
+      
+      if (response.data.success && response.data.data) {
+        const defaultData = response.data.data as DefaultSelectionData
+        setDefaultSelectionInfo(defaultData)
+        setSelectedProducts(defaultData.selected_products || [])
+        
+        // Set default scenario name based on latest scenario
+        if (defaultData.scenario_info?.name) {
+          const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')
+          setScenarioName(`${defaultData.scenario_info.name}_copy_${timestamp}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading default selection:', error)
+      // Don't show error to user for default loading failure
+    } finally {
+      setLoadingDefaults(false)
+    }
+  }
+
+  // Load default selection on component mount
+  useEffect(() => {
+    loadDefaultSelection()
+  }, [])
 
   // Get all available product groups from the new data structure
   const getAllProductGroups = () => {
@@ -95,7 +136,8 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
 
       if (response.data.success) {
         setOptimizationData(response.data.json_result);
-        setShowResults(true)
+        setShowResults(true);
+        onRefresh();
       } else {
         throw new Error(response.data.message || 'Optimization failed')
       }
@@ -201,6 +243,46 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             </p>
           </div>
 
+          {/* Default Selection Info */}
+          {defaultSelectionInfo?.scenario_info && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-900 mb-1">
+                    โหลดการเลือกเริ่มต้นจาก Scenario ล่าสุด
+                  </h4>
+                  <p className="text-sm text-blue-700 mb-2">
+                    <strong>Scenario:</strong> {defaultSelectionInfo.scenario_info.name}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    <strong>วันที่:</strong> {new Date(defaultSelectionInfo.scenario_info.time).toLocaleString('th-TH')} | 
+                    <strong> เลือกแล้ว:</strong> {selectedProducts.length} รายการ
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <Button 
+                      onClick={loadDefaultSelection} 
+                      variant="outline" 
+                      size="sm"
+                      disabled={loadingDefaults}
+                      className="text-xs"
+                    >
+                      {loadingDefaults ? "กำลังโหลด..." : "โหลดใหม่"}
+                    </Button>
+                    <Button 
+                      onClick={() => setSelectedProducts([])} 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                    >
+                      ล้างการเลือก
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
@@ -210,11 +292,30 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
 
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <Button onClick={selectAll} variant="outline" size="sm">
+              <Button 
+                onClick={selectAll} 
+                variant="outline" 
+                size="sm"
+                disabled={loadingDefaults}
+              >
                 เลือกทั้งหมด
               </Button>
-              <Button onClick={clearAll} variant="outline" size="sm">
+              <Button 
+                onClick={clearAll} 
+                variant="outline" 
+                size="sm"
+                disabled={loadingDefaults}
+              >
                 ยกเลิกทั้งหมด
+              </Button>
+              <Button 
+                onClick={loadDefaultSelection} 
+                variant="outline" 
+                size="sm"
+                disabled={loadingDefaults}
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                {loadingDefaults ? "กำลังโหลด..." : "โหลดการเลือกเริ่มต้น"}
               </Button>
               <Badge variant="secondary">
                 เลือกแล้ว: {selectedProducts.length} รายการ
@@ -222,7 +323,7 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
             </div>
             <Button 
               onClick={runOptimization}
-              disabled={selectedProducts.length === 0 || optimizing || !scenarioName.trim()}
+              disabled={selectedProducts.length === 0 || optimizing || !scenarioName.trim() || loadingDefaults}
               className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
             >
               {optimizing ? (

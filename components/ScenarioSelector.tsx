@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Database, Play } from "lucide-react";
+import { Database, Play, X } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { apiEndpoints } from "@/lib/api";
 import OptimizationResultTab from "./OptimizationResultTab";
 
@@ -43,12 +44,24 @@ export default function ScenarioSelector({
     onSaveScenario,
 }: ScenarioSelectorProps) {
     const [isSaving, setIsSaving] = React.useState(false);
+    const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+
+    const handleConfirmSave = () => {
+        setShowConfirmModal(true);
+    };
+
+    const handleCancelSave = () => {
+        setShowConfirmModal(false);
+    };
 
     const handleSubmit = async () => {
         if (!selectedScenario || !scenarioData) {
             alert('กรุณาเลือก scenario ก่อน');
             return;
         }
+
+        // ปิด modal
+        setShowConfirmModal(false);
 
         try {
             setIsSaving(true);
@@ -105,8 +118,86 @@ export default function ScenarioSelector({
             setIsSaving(false);
         }
     };
+
+    // Confirmation Modal Component
+    const ConfirmationModal = () => {
+        if (!showConfirmModal) return null;
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                {/* Backdrop */}
+                <div 
+                    className="fixed inset-0"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                    onClick={handleCancelSave}
+                />
+                
+                {/* Modal */}
+                <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            ยืนยันการบันทึก Scenario
+                        </h3>
+                        <button
+                            onClick={handleCancelSave}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="mb-6">
+                        <p className="text-gray-600 mb-4">
+                            คุณต้องการบันทึก scenario นี้ลงในฐานข้อมูลหรือไม่?
+                        </p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-sm text-blue-800">
+                                <strong>Scenario:</strong> {selectedScenario}
+                            </p>
+                            <p className="text-sm text-blue-700 mt-1">
+                                ข้อมูลจะถูกบันทึกลงในตาราง scenario และ products
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 justify-end">
+                        <Button
+                            onClick={handleCancelSave}
+                            variant="outline"
+                            disabled={isSaving}
+                        >
+                            ยกเลิก
+                        </Button>
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={isSaving}
+                            className="bg-purple-600 hover:bg-purple-700"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    กำลังบันทึก...
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    ยืนยันการบันทึก
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <>
+            {/* Confirmation Modal */}
+            <ConfirmationModal />
             {/* Scenario Selection Header */}
             <Card>
                 <CardHeader>
@@ -174,7 +265,7 @@ export default function ScenarioSelector({
                                 )}
                         </div>
                         <button
-                            onClick={handleSubmit}
+                            onClick={handleConfirmSave}
                             disabled={!selectedScenario || !scenarioData || isSaving}
                             className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >

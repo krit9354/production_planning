@@ -52,10 +52,14 @@ import {
 interface CustomAdjustmentTabProps {
     onRefresh: () => void;
     loading: boolean;
+    scenarios: string[];
+    loadingScenarios: boolean;
 }
 
 export default function CustomAdjustmentTab({
     onRefresh,
+    scenarios,
+    loadingScenarios,
 }: CustomAdjustmentTabProps) {
     const [customRatios, setCustomRatios] = useState<Product[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -64,9 +68,7 @@ export default function CustomAdjustmentTab({
     const [newScenarioName, setNewScenarioName] = useState<string>("");
 
     // Scenario states
-    const [scenarios, setScenarios] = useState<string[]>([]);
     const [selectedScenario, setSelectedScenario] = useState<string>("");
-    const [loadingScenarios, setLoadingScenarios] = useState(false);
 
     // Formula states
     const [formulaData, setFormulaData] = useState<FormulaData>({});
@@ -86,23 +88,6 @@ export default function CustomAdjustmentTab({
     const pulpBOptions = createPercentageOptions(50);  // 0-50
     const pulpCOptions = createPercentageOptions(75);  // 0-75
 
-    // Fetch scenarios from API
-    const fetchScenarios = async () => {
-        setLoadingScenarios(true);
-        try {
-            const response = await axios.get(apiEndpoints.getScenarios());
-            if (response.data && Array.isArray(response.data)) {
-                setScenarios(response.data);
-                // Let user manually select scenario
-            }
-        } catch (error) {
-            console.error('Error fetching scenarios:', error);
-            setScenarios([]);
-        } finally {
-            setLoadingScenarios(false);
-        }
-    };
-
     // Fetch formula data from API
     const fetchFormulaData = async () => {
         setLoadingFormulas(true);
@@ -119,9 +104,8 @@ export default function CustomAdjustmentTab({
         }
     };
 
-    // Load scenarios on component mount
+    // Load formula data on component mount
     useEffect(() => {
-        fetchScenarios();
         fetchFormulaData();
     }, []);
 
@@ -239,12 +223,10 @@ export default function CustomAdjustmentTab({
             
             if (response.data.success) {
                 setCustomResults(response.data.json_result);
-                // รีเฟรช scenarios list
-                await fetchScenarios();
-                // alert(`✅ สร้าง Scenario "${newScenarioName}" สำเร็จ!`);
+                // รีเฟรช scenarios list ผ่าน parent component
                 // เคลียร์ชื่อ scenario
                 setNewScenarioName("");
-                onRefresh();
+                onRefresh(); // This will refresh scenarios in parent component
             } else {
                 alert(`❌ เกิดข้อผิดพลาด: ${response.data.message}`);
             }

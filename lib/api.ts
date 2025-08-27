@@ -27,6 +27,9 @@ export const apiEndpoints = {
   
   // Warnings
   getWarnings: () => `${API_BASE_URL}/get_warnings`,
+  
+  // Default selection
+  getDefaultSelection: () => `${API_BASE_URL}/get_default_selection`,
 };
 
 export { API_BASE_URL };
