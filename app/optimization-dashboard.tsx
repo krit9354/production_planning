@@ -148,7 +148,7 @@ export default function OptimizationDashboard() {
   const initializeOptimizer = async () => {
     try {
       console.log("🚀 Initializing optimizer...")
-      const response = await axios.get(apiEndpoints.initializeOptimizer())
+      const response = await axios.post(apiEndpoints.initializeOptimizer())
       console.log("✅ Optimizer initialized:", response.data)
       return true
     } catch (error: unknown) {
