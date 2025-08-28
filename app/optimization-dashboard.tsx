@@ -23,8 +23,15 @@ export default function OptimizationDashboard() {
   const [originalPlanData, setOriginalPlanData] = useState<OptimizationData | null>(null)
   const [scenarioData, setScenarioData] = useState<OptimizationData | null>(null)
   const [productsData, setProductsData] = useState<ProductsData | null>(null)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Loading states for different API calls
+  const [loadingOptimization, setLoadingOptimization] = useState(false)
+  const [loadingOriginalPlan, setLoadingOriginalPlan] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [loadingScenarioData, setLoadingScenarioData] = useState(false)
+  const [loadingInitializer, setLoadingInitializer] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   
   // Scenario states
   const [scenarios, setScenarios] = useState<string[]>([])
@@ -38,7 +45,7 @@ export default function OptimizationDashboard() {
   // Fetch time optimization data from API
   const fetchOptimizationData = async () => {
     try {
-      setLoading(true)
+      setLoadingOptimization(true)
       setError(null)
       const response = await axios.get(apiEndpoints.getTime())
       console.log("Time Optimization Data:", response.data)
@@ -49,14 +56,14 @@ export default function OptimizationDashboard() {
       // Fallback to mock data if API fails
       setOptimizationData(null) // Component will use its own mock data
     } finally {
-      setLoading(false)
+      setLoadingOptimization(false)
     }
   }
 
   // Fetch original plan data from API
   const fetchOriginalPlanData = async () => {
     try {
-      setLoading(true)
+      setLoadingOriginalPlan(true)
       setError(null)
       const response = await axios.get(apiEndpoints.getOriginalPlan())
       console.log("Original Plan Data:", response.data)
@@ -67,7 +74,7 @@ export default function OptimizationDashboard() {
       // Fallback to mock data if API fails
       setOriginalPlanData(null)
     } finally {
-      setLoading(false)
+      setLoadingOriginalPlan(false)
     }
   }
 
@@ -93,7 +100,7 @@ export default function OptimizationDashboard() {
     if (!scenarioName) return
     
     try {
-      setLoading(true)
+      setLoadingScenarioData(true)
       setError(null)
       const response = await axios.get(apiEndpoints.getScenario(scenarioName))
       console.log('Scenario API Response:', response.data)
@@ -103,14 +110,14 @@ export default function OptimizationDashboard() {
       setError('get_scenario')
       setScenarioData(null)
     } finally {
-      setLoading(false)
+      setLoadingScenarioData(false)
     }
   }
 
   // Fetch products data from API
   const fetchProductsData = async () => {
     try {
-      setLoading(true)
+      setLoadingProducts(true)
       setError(null)
       const response = await axios.get(apiEndpoints.getFormula())
       console.log("Products Data:", response.data)
@@ -121,7 +128,7 @@ export default function OptimizationDashboard() {
       // Fallback to mock data
       setProductsData({})
     } finally {
-      setLoading(false)
+      setLoadingProducts(false)
     }
   }
 
@@ -147,14 +154,17 @@ export default function OptimizationDashboard() {
   // Initialize optimizer first
   const initializeOptimizer = async () => {
     try {
+      setLoadingInitializer(true)
       console.log("🚀 Initializing optimizer...")
-      const response = await axios.get(apiEndpoints.initializeOptimizer())
+      const response = await axios.post(apiEndpoints.initializeOptimizer())
       console.log("✅ Optimizer initialized:", response.data)
       return true
     } catch (error: unknown) {
       console.error('❌ Error initializing optimizer:', error)
       setError('initialize_optimizer')
       return false
+    } finally {
+      setLoadingInitializer(false)
     }
   }
 
@@ -177,6 +187,7 @@ export default function OptimizationDashboard() {
   useEffect(() => {
     const initialize = async () => {
       console.log("🔄 Starting application initialization...")
+      setIsInitializing(true)
       
       // Step 1: Initialize optimizer first
       const optimizerReady = await initializeOptimizer()
@@ -191,6 +202,8 @@ export default function OptimizationDashboard() {
         // Try to load data even if optimizer fails
         await loadAllData()
       }
+      
+      setIsInitializing(false)
     }
     
     initialize()
@@ -256,13 +269,25 @@ export default function OptimizationDashboard() {
     }
   }
 
-  // Loading state
-  if (loading && !optimizationData && !scenarioData) {
+  // Loading state - show loading if initializing or any major component is loading
+  const isLoading = isInitializing || loadingOptimization || loadingOriginalPlan || loadingProducts || loadingScenarioData
+  
+  if (isInitializing) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-lg">กำลังโหลดข้อมูล...</p>
+          <p className="mt-4 text-gray-600 text-lg">
+            {loadingInitializer ? "กำลังเริ่มต้นระบบ..." : "กำลังโหลดข้อมูล..."}
+          </p>
+          <div className="mt-2 text-sm text-gray-500">
+            {loadingInitializer && "🚀 กำลังเตรียมเครื่องมือ optimization..."}
+            {loadingOptimization && "📊 กำลังโหลดข้อมูล optimization..."}
+            {loadingOriginalPlan && "📋 กำลังโหลดแผนเดิม..."}
+            {loadingProducts && "🏭 กำลังโหลดข้อมูลผลิตภัณฑ์..."}
+            {loadingScenarios && "📂 กำลังโหลดรายการ scenario..."}
+            {loadingWarnings && "⚠️ กำลังตรวจสอบคำเตือน..."}
+          </div>
         </div>
       </div>
     )
@@ -275,6 +300,23 @@ export default function OptimizationDashboard() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gray-900">Production Optimization Dashboard</h1>
           <p className="text-gray-600">แดชบอร์ดสำหรับแสดงผลการปรับปรุงประสิทธิภาพการผลิต</p>
+          
+          {/* Loading indicators for individual components */}
+          {(loadingOptimization || loadingOriginalPlan || loadingProducts || loadingScenarios || loadingWarnings) && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg mx-auto max-w-md">
+              <div className="flex items-center justify-center gap-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="text-sm">
+                  {loadingOptimization && "กำลังโหลดข้อมูล Optimization..."}
+                  {loadingOriginalPlan && "กำลังโหลดแผนเดิม..."}
+                  {loadingProducts && "กำลังโหลดข้อมูลผลิตภัณฑ์..."}
+                  {loadingScenarios && "กำลังโหลดรายการ Scenario..."}
+                  {loadingWarnings && "กำลังตรวจสอบคำเตือน..."}
+                  {loadingScenarioData && "กำลังโหลดข้อมูล Scenario..."}
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Error message */}
           {error && (
@@ -291,12 +333,14 @@ export default function OptimizationDashboard() {
                       fetchOriginalPlanData()
                     } else if (error === "scenarios") {
                       fetchScenarios()
+                    } else if (error === "initialize_optimizer") {
+                      initializeOptimizer()
                     }
                   }}
                   className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 transition-colors"
-                  disabled={loading}
+                  disabled={isLoading}
                 >
-                  {loading ? 'กำลังโหลด...' : 'ลองใหม่'}
+                  {isLoading ? 'กำลังโหลด...' : 'ลองใหม่'}
                 </button>
               </div>
             </div>
@@ -326,14 +370,17 @@ export default function OptimizationDashboard() {
               <TabsTrigger value="original" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Original Plan
+                {loadingOriginalPlan && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
               <TabsTrigger value="optimization" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Optimization
+                {loadingOptimization && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
               <TabsTrigger value="products" className="flex items-center gap-2">
                 <Target className="h-4 w-4" />
                 Product Selection
+                {loadingProducts && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
               <TabsTrigger value="custom" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -346,6 +393,7 @@ export default function OptimizationDashboard() {
               <TabsTrigger value="scenario" className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 Scenario Results
+                {(loadingScenarios || loadingScenarioData) && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
               <TabsTrigger value="import-export" className="flex items-center gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
@@ -357,7 +405,7 @@ export default function OptimizationDashboard() {
           <TabsContent value="optimization" className="space-y-6">
             <OptimizationResultTab 
               data={optimizationData} 
-              loading={loading} 
+              loading={loadingOptimization} 
               onRefresh={fetchOptimizationData}
             />
           </TabsContent>
@@ -370,7 +418,7 @@ export default function OptimizationDashboard() {
               loadingScenarios={loadingScenarios}
               onDeleteScenario={handleDeleteScenario}
               scenarioData={scenarioData}
-              loading={loading}
+              loading={loadingScenarioData}
               onRefresh={() => fetchScenarioData(selectedScenario)}
             />
           </TabsContent>
@@ -378,7 +426,7 @@ export default function OptimizationDashboard() {
           <TabsContent value="products" className="space-y-6">
             <ProductSelectionTab 
               productsData={productsData}
-              loading={loading} 
+              loading={loadingProducts} 
               onRefresh={fetchScenarios}
             />
           </TabsContent>
@@ -386,14 +434,14 @@ export default function OptimizationDashboard() {
           <TabsContent value="original" className="space-y-6">
             <OptimizationResultTab 
               data={originalPlanData} 
-              loading={loading} 
+              loading={loadingOriginalPlan} 
               onRefresh={fetchOriginalPlanData}
             />
           </TabsContent>
 
           <TabsContent value="custom" className="space-y-6">
             <CustomAdjustmentTab 
-              loading={loading} 
+              loading={isLoading} 
               onRefresh={fetchScenarios}
               scenarios={scenarios}
               loadingScenarios={loadingScenarios}
@@ -402,7 +450,7 @@ export default function OptimizationDashboard() {
 
           <TabsContent value="compare" className="space-y-6">
             <ScenarioCompareTab 
-              loading={loading} 
+              loading={isLoading} 
               onRefresh={() => {}}
               scenarios={scenarios}
               loadingScenarios={loadingScenarios}
@@ -411,7 +459,7 @@ export default function OptimizationDashboard() {
 
           <TabsContent value="import-export" className="space-y-6">
             <ImportExportTab 
-              loading={loading} 
+              loading={isLoading} 
               onRefresh={() => {
                 // Refresh all data when import is successful
                 fetchOptimizationData()
