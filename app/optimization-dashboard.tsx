@@ -144,13 +144,56 @@ export default function OptimizationDashboard() {
     console.log("Warnings state:", warnings)
   }
 
+  // Initialize optimizer first
+  const initializeOptimizer = async () => {
+    try {
+      console.log("🚀 Initializing optimizer...")
+      const response = await axios.get(apiEndpoints.initializeOptimizer())
+      console.log("✅ Optimizer initialized:", response.data)
+      return true
+    } catch (error: unknown) {
+      console.error('❌ Error initializing optimizer:', error)
+      setError('initialize_optimizer')
+      return false
+    }
+  }
+
+  // Load all data after optimizer is initialized
+  const loadAllData = async () => {
+    try {
+      await Promise.all([
+        fetchOptimizationData(),
+        fetchOriginalPlanData(),
+        fetchProductsData(),
+        fetchScenarios(),
+        fetchWarnings()
+      ])
+    } catch (error) {
+      console.error('Error loading data:', error)
+    }
+  }
+
   // Load data on component mount
   useEffect(() => {
-    fetchOptimizationData()
-    fetchOriginalPlanData()
-    fetchProductsData()
-    fetchScenarios()
-    fetchWarnings()
+    const initialize = async () => {
+      console.log("🔄 Starting application initialization...")
+      
+      // Step 1: Initialize optimizer first
+      const optimizerReady = await initializeOptimizer()
+      
+      if (optimizerReady) {
+        console.log("✅ Optimizer ready, loading other data...")
+        // Step 2: Load all other data after optimizer is ready
+        await loadAllData()
+        console.log("✅ All data loaded successfully")
+      } else {
+        console.warn("⚠️ Optimizer initialization failed, loading data anyway...")
+        // Try to load data even if optimizer fails
+        await loadAllData()
+      }
+    }
+    
+    initialize()
   }, [])
 
   // Auto load scenario data when selected scenario changes
