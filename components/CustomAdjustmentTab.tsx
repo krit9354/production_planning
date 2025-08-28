@@ -74,6 +74,9 @@ export default function CustomAdjustmentTab({
     const [formulaData, setFormulaData] = useState<FormulaData>({});
     const [loadingFormulas, setLoadingFormulas] = useState(false);
 
+    // Stable key for identifying a product regardless of filtering/sorting
+    const getProductKey = (p: Product) => [p.brand ?? '', p.product_group ?? '', p.thickness ?? '', p.channel ?? ''].join('|');
+
     // Create percentage options for dropdowns
     const createPercentageOptions = (max: number) => {
         const options = [];
@@ -134,14 +137,15 @@ export default function CustomAdjustmentTab({
 
     // Handle ratio input change
     const handleRatioChange = (
-        productId: number,
+        productKey: string,
         material: string,
         value: string
     ) => {
         const numValue = parseFloat(value) || 0;
+        console.log(`Changing product ${productKey} material ${material} to ${numValue}%`);
         setCustomRatios((prev) =>
             prev.map((product, index) =>
-                index === productId
+                getProductKey(product) === productKey
                     ? {
                           ...product,
                           ratios: {
@@ -155,10 +159,11 @@ export default function CustomAdjustmentTab({
     };
 
     // Handle formula change
-    const handleFormulaChange = (productId: number, newFormula: string) => {
+    const handleFormulaChange = (productKey: string, newFormula: string) => {
+        console.log(`Changing product ${productKey} formula to ${newFormula}`);
         setCustomRatios((prev) =>
             prev.map((product, index) =>
-                index === productId
+                getProductKey(product) === productKey
                     ? {
                           ...product,
                           formula: newFormula,
@@ -490,10 +495,10 @@ export default function CustomAdjustmentTab({
                                     getOriginalRatios(product);
 
                                 return (
-                                    <React.Fragment key={`product-${index}`}>
+                                    <React.Fragment key={`product-fragment-${index}-${product.name || product.product_group}`}>
                                         {/* Original Values Row */}
                                         <TableRow
-                                            key={`${index}-original`}
+                                            key={`product-${index}-original-${product.name || product.product_group}`}
                                             className="hover:bg-gray-50"
                                             style={{ borderBottom: "none" }}
                                         >
@@ -611,19 +616,20 @@ export default function CustomAdjustmentTab({
 
                                         {/* Custom Input Row */}
                                         <TableRow
-                                            key={`${index}-input`}
+                                            key={`product-${index}-input-${product.name || product.product_group}`}
                                             className="hover:bg-gray-50"
                                         >
                                             <TableCell className="text-center">
                                                 <select
-                                                    value={product.formula}
-                                                    onChange={(e) => handleFormulaChange(index, e.target.value)}
+                                                    id={`formula-select-${index}-${product.name || product.product_group}`}
+                                                    value={product.formula ?? ''}
+                                                    onChange={(e) => handleFormulaChange(getProductKey(product), e.target.value)}
                                                     disabled={loadingFormulas}
                                                     className="w-24 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     {product.brand && formulaData[product.brand] && formulaData[product.brand][product.product_group+"|"+product.thickness+"|"+product.channel] ? 
                                                         formulaData[product.brand][product.product_group+"|"+product.thickness+"|"+product.channel].map((formula: string, formulaIndex: number) => (
-                                                            <option key={`${index}|${formulaIndex}-${formula}`} value={formula}>
+                                                            <option key={`product-${index}-formula-${formulaIndex}-${formula}`} value={formula}>
                                                                 {formula}
                                                             </option>
                                                         )) : (
@@ -636,12 +642,13 @@ export default function CustomAdjustmentTab({
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <select
-                                                    value={((product.ratios?.Pulp_A || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(index, "Pulp_A", e.target.value)}
+                                                    id={`pulp-a-select-${index}-${product.name || product.product_group}`}
+                                                    value={Math.round((product.ratios?.Pulp_A || 0) * 100).toString()}
+                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_A", e.target.value)}
                                                     className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
                                                     {pulpAOptions.map((option) => (
-                                                        <option key={`pulp-a-${index}-${option}`} value={option.toString()}>
+                                                        <option key={`product-${index}-pulp-a-${option}`} value={option.toString()}>
                                                             {option}%
                                                         </option>
                                                     ))}
@@ -649,12 +656,13 @@ export default function CustomAdjustmentTab({
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <select
-                                                    value={((product.ratios?.Pulp_B || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(index, "Pulp_B", e.target.value)}
+                                                    id={`pulp-b-select-${index}-${product.name || product.product_group}`}
+                                                    value={Math.round((product.ratios?.Pulp_B || 0) * 100).toString()}
+                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_B", e.target.value)}
                                                     className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
                                                     {pulpBOptions.map((option) => (
-                                                        <option key={`pulp-b-${index}-${option}`} value={option.toString()}>
+                                                        <option key={`product-${index}-pulp-b-${option}`} value={option.toString()}>
                                                             {option}%
                                                         </option>
                                                     ))}
@@ -662,12 +670,13 @@ export default function CustomAdjustmentTab({
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <select
-                                                    value={((product.ratios?.Pulp_C || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(index, "Pulp_C", e.target.value)}
+                                                    id={`pulp-c-select-${index}-${product.name || product.product_group}`}
+                                                    value={Math.round((product.ratios?.Pulp_C || 0) * 100).toString()}
+                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_C", e.target.value)}
                                                     className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 >
                                                     {pulpCOptions.map((option) => (
-                                                        <option key={`pulp-c-${index}-${option}`} value={option.toString()}>
+                                                        <option key={`product-${index}-pulp-c-${option}`} value={option.toString()}>
                                                             {option}%
                                                         </option>
                                                     ))}

@@ -30,6 +30,15 @@ export const apiEndpoints = {
   
   // Default selection
   getDefaultSelection: () => `${API_BASE_URL}/get_default_selection`,
+  
+  // Actual inventory
+  getActualInventory: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const queryString = params.toString();
+    return `${API_BASE_URL}/get_actual_inventory${queryString ? `?${queryString}` : ''}`;
+  },
 };
 
 export { API_BASE_URL };

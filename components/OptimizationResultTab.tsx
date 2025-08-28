@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import {
     Card,
     CardContent,
@@ -35,6 +36,7 @@ import {
     Factory,
 } from "lucide-react";
 import { OptimizationData, InventoryItem, Delivery, Product, ProductionPlanItem } from "@/lib/types";
+import { apiEndpoints } from "@/lib/api";
 
 interface OptimizationResultTabProps {
     onRefresh: () => void;
@@ -45,7 +47,44 @@ interface OptimizationResultTabProps {
 export default function OptimizationResultTab({
     data,
 }: OptimizationResultTabProps) {
-    // Mock data สำหรับ fallback
+    const [actualInventoryData, setActualInventoryData] = useState<any[]>([]);
+    const [loadingActualData, setLoadingActualData] = useState(false);
+
+    // Fetch actual inventory data when component mounts or data changes
+    useEffect(() => {
+        const fetchActualInventoryData = async () => {
+            if (!data?.inventoryData || data.inventoryData.length === 0) return;
+            
+            setLoadingActualData(true);
+            try {
+                // Get date range from optimization data
+                const dates = data.inventoryData.map(item => item.date).filter(Boolean);
+                const startDate = dates.length > 0 ? Math.min(...dates.map(d => new Date(d).getTime())) : null;
+                const endDate = dates.length > 0 ? Math.max(...dates.map(d => new Date(d).getTime())) : null;
+                
+                const startDateStr = startDate ? new Date(startDate).toISOString().split('T')[0] : undefined;
+                const endDateStr = endDate ? new Date(endDate).toISOString().split('T')[0] : undefined;
+                
+                const response = await fetch(apiEndpoints.getActualInventory(startDateStr, endDateStr));
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    setActualInventoryData(result.data);
+                    console.log("✅ Actual inventory data loaded:", result.data.length, "records");
+                } else {
+                    console.warn("⚠️ No actual inventory data found:", result.message);
+                    setActualInventoryData([]);
+                }
+            } catch (error) {
+                console.error("❌ Error fetching actual inventory data:", error);
+                setActualInventoryData([]);
+            } finally {
+                setLoadingActualData(false);
+            }
+        };
+
+        fetchActualInventoryData();
+    }, [data?.inventoryData]);
 
     // Process inventory data to extract delivery amounts by pulp type
     const processedInventoryData =
@@ -78,22 +117,24 @@ export default function OptimizationResultTab({
             };
         }) || [];
 
-    // Mock actual data - สำหรับกลางเวลาของข้อมูล predicted
-    const createMockActualData = (predictedData: any[]) => {
-        if (!predictedData || predictedData.length === 0) return [];
+    // Helper function to get actual inventory value by date
+    const getActualInventoryByDate = (date: string, pulpType: string) => {
+        const actualItem = actualInventoryData.find(item => item.date === date);
+        if (!actualItem) return null;
         
-        const midPoint = Math.floor(predictedData.length / 2);
-        return predictedData.slice(0, midPoint).map((item, index) => ({
-            ...item,
-            // เพิ่มความผันแปรเล็กน้อยจาก predicted
-            actual_eucalyptus: (item?.eucalyptus || 0) * (0.9 + Math.random() * 0.2),
-            actual_pulp_a: (item?.pulp_a || 0) * (0.85 + Math.random() * 0.3),
-            actual_pulp_b: (item?.pulp_b || 0) * (0.88 + Math.random() * 0.24),
-            actual_pulp_c: (item?.pulp_c || 0) * (0.92 + Math.random() * 0.16),
-        }));
+        switch (pulpType) {
+            case 'eucalyptus':
+                return actualItem.actual_eucalyptus;
+            case 'pulp_a':
+                return actualItem.actual_pulp_a;
+            case 'pulp_b':
+                return actualItem.actual_pulp_b;
+            case 'pulp_c':
+                return actualItem.actual_pulp_c;
+            default:
+                return null;
+        }
     };
-
-    const actualInventoryData = createMockActualData(processedInventoryData);
 
     // Prepare data for ECharts
     const prepareChartData = () => {
@@ -143,9 +184,8 @@ export default function OptimizationResultTab({
             {
                 name: 'Eucalyptus (Actual)',
                 type: 'line',
-                data: processedInventoryData.map((item, index) => {
-                    const actualItem = actualInventoryData[index];
-                    return actualItem?.actual_eucalyptus || null;
+                data: processedInventoryData.map((item) => {
+                    return getActualInventoryByDate(item?.date || '', 'eucalyptus');
                 }),
                 lineStyle: { 
                     color: '#8b5cf6', 
@@ -160,9 +200,8 @@ export default function OptimizationResultTab({
             {
                 name: 'Pulp A (Actual)',
                 type: 'line',
-                data: processedInventoryData.map((item, index) => {
-                    const actualItem = actualInventoryData[index];
-                    return actualItem?.actual_pulp_a || null;
+                data: processedInventoryData.map((item) => {
+                    return getActualInventoryByDate(item?.date || '', 'pulp_a');
                 }),
                 lineStyle: { 
                     color: '#82ca9d', 
@@ -177,9 +216,8 @@ export default function OptimizationResultTab({
             {
                 name: 'Pulp B (Actual)',
                 type: 'line',
-                data: processedInventoryData.map((item, index) => {
-                    const actualItem = actualInventoryData[index];
-                    return actualItem?.actual_pulp_b || null;
+                data: processedInventoryData.map((item) => {
+                    return getActualInventoryByDate(item?.date || '', 'pulp_b');
                 }),
                 lineStyle: { 
                     color: '#ffc658', 
@@ -194,9 +232,8 @@ export default function OptimizationResultTab({
             {
                 name: 'Pulp C (Actual)',
                 type: 'line',
-                data: processedInventoryData.map((item, index) => {
-                    const actualItem = actualInventoryData[index];
-                    return actualItem?.actual_pulp_c || null;
+                data: processedInventoryData.map((item) => {
+                    return getActualInventoryByDate(item?.date || '', 'pulp_c');
                 }),
                 lineStyle: { 
                     color: '#ff7300', 
