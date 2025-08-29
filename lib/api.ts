@@ -39,6 +39,9 @@ export const apiEndpoints = {
     const queryString = params.toString();
     return `${API_BASE_URL}/get_actual_inventory${queryString ? `?${queryString}` : ''}`;
   },
+  
+  // Target percentages
+  getTargetPercentages: () => `${API_BASE_URL}/get_target_percentages`,
 };
 
 export { API_BASE_URL };

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, Play, RefreshCw, Info } from "lucide-react"
 import OptimizationResultTab from "./OptimizationResultTab"
 import { apiEndpoints } from "@/lib/api"
-import { ProductsData, OptimizationData } from "@/lib/types"
+import { ProductsData, OptimizationData, TargetPercentagesData, TargetPercentagesResponse } from "@/lib/types"
 
 interface ProductSelectionTabProps {
   productsData: ProductsData | null
@@ -34,6 +34,25 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
   const [error, setError] = useState<string | null>(null)
   const [defaultSelectionInfo, setDefaultSelectionInfo] = useState<DefaultSelectionData | null>(null)
   const [loadingDefaults, setLoadingDefaults] = useState(false)
+  const [targetPercentages, setTargetPercentages] = useState<TargetPercentagesData>({})
+  const [loadingTargets, setLoadingTargets] = useState(false)
+
+  // Load target percentages from optimize_next_week.json
+  const loadTargetPercentages = async () => {
+    setLoadingTargets(true)
+    try {
+      const response = await axios.get<TargetPercentagesResponse>(apiEndpoints.getTargetPercentages())
+      
+      if (response.data.success && response.data.data) {
+        setTargetPercentages(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error loading target percentages:', error)
+      // Don't show error to user for target loading failure
+    } finally {
+      setLoadingTargets(false)
+    }
+  }
 
   // Load default selection from latest scenario
   const loadDefaultSelection = async () => {
@@ -60,9 +79,10 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
     }
   }
 
-  // Load default selection on component mount
+  // Load default selection and target percentages on component mount
   useEffect(() => {
     loadDefaultSelection()
+    loadTargetPercentages()
   }, [])
 
   // Get all available product groups from the new data structure
@@ -308,15 +328,6 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
               >
                 ยกเลิกทั้งหมด
               </Button>
-              <Button 
-                onClick={loadDefaultSelection} 
-                variant="outline" 
-                size="sm"
-                disabled={loadingDefaults}
-                className="text-blue-600 border-blue-300 hover:bg-blue-50"
-              >
-                {loadingDefaults ? "กำลังโหลด..." : "โหลดการเลือกเริ่มต้น"}
-              </Button>
               <Badge variant="secondary">
                 เลือกแล้ว: {selectedProducts.length} รายการ
               </Badge>
@@ -347,7 +358,19 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
                 <div key={brand} className="space-y-4">
                   {/* Brand Header */}
                   <div className="border-b-2 border-purple-200 pb-2">
-                    <h2 className="text-xl font-bold text-purple-800">{brand}</h2>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-bold text-purple-800">{brand}</h2>
+                      {targetPercentages[brand] && (
+                        <Badge variant="outline" className="text-green-600 border-green-300">
+                          {targetPercentages[brand].brand_percentage}%
+                        </Badge>
+                      )}
+                      {targetPercentages[brand] && (
+                        <span className="text-sm text-gray-600">
+                          {targetPercentages[brand].brand_total_target.toFixed(1)} ตัน
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600">
                       {Object.keys(productsData[brand]).length} Product Combinations
                     </p>
@@ -374,9 +397,16 @@ export default function ProductSelectionTab({ productsData, loading, onRefresh }
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-sm leading-tight mb-1">
-                                {productGroup}
-                              </h3>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-sm leading-tight">
+                                  {productGroup}
+                                </h3>
+                                {targetPercentages[brand]?.products[combinedKey] && (
+                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                    {targetPercentages[brand].products[combinedKey].percentage}%
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500 mb-1">
                                 {thickness && `หนา: ${thickness}`}
                               </p>

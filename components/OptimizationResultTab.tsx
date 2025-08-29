@@ -92,6 +92,7 @@ export default function OptimizationResultTab({
             let delivery_pulp_a = 0;
             let delivery_pulp_b = 0;
             let delivery_pulp_c = 0;
+            let delivery_eucalyptus = 0;
 
             if (item.deliveries && item.deliveries.length > 0) {
                 item.deliveries.forEach((delivery: Delivery) => {
@@ -105,6 +106,8 @@ export default function OptimizationResultTab({
                         case "Pulp_C":
                             delivery_pulp_c += delivery.amount || 0;
                             break;
+                        case "Eucalyptus":
+                            delivery_eucalyptus += delivery.amount || 0;
                     }
                 });
             }
@@ -114,6 +117,7 @@ export default function OptimizationResultTab({
                 delivery_pulp_a,
                 delivery_pulp_b,
                 delivery_pulp_c,
+                delivery_eucalyptus,
             };
         }) || [];
 
@@ -188,10 +192,15 @@ export default function OptimizationResultTab({
                     return getActualInventoryByDate(item?.date || '', 'eucalyptus');
                 }),
                 lineStyle: { 
-                    color: '#8b5cf6', 
+                    color: '#976df7ff', 
                     width: 3, 
                     type: 'dashed',
                     opacity: 0.8 
+                },
+                itemStyle: {
+                    color: '#7540f1ff',
+                    borderColor: '#8b5cf6',
+                    opacity: 0.95,
                 },
                 symbol: 'diamond',
                 symbolSize: 6,
@@ -209,6 +218,11 @@ export default function OptimizationResultTab({
                     type: 'dashed',
                     opacity: 0.8 
                 },
+                itemStyle: {
+                    color: '#28a745',
+                    borderColor: '#28a745',
+                    opacity: 0.95,
+                },
                 symbol: 'diamond',
                 symbolSize: 6,
                 yAxisIndex: 0,
@@ -225,6 +239,11 @@ export default function OptimizationResultTab({
                     type: 'dashed',
                     opacity: 0.8 
                 },
+                itemStyle: {
+                    color: '#ffb31cff',
+                    borderColor: '#ffbb33ff',
+                    opacity: 0.95,
+                },
                 symbol: 'diamond',
                 symbolSize: 6,
                 yAxisIndex: 0,
@@ -236,16 +255,28 @@ export default function OptimizationResultTab({
                     return getActualInventoryByDate(item?.date || '', 'pulp_c');
                 }),
                 lineStyle: { 
-                    color: '#ff7300', 
+                    color: '#ffa65dff', 
                     width: 3, 
                     type: 'dashed',
                     opacity: 0.8 
+                },
+                itemStyle: {
+                    color: '#ff7300',
+                    borderColor: '#ff7300',
+                    opacity: 0.95,
                 },
                 symbol: 'diamond',
                 symbolSize: 6,
                 yAxisIndex: 0,
             },
             // Delivery bars
+            {
+                name: 'ส่งมอบ Eucalyptus',
+                type: 'bar',
+                data: processedInventoryData.map(item => item?.delivery_eucalyptus || 0),
+                itemStyle: { color: '#976df7ff', opacity: 0.8 },
+                yAxisIndex: 1,
+            },
             {
                 name: 'ส่งมอบ Pulp A',
                 type: 'bar',
@@ -273,6 +304,20 @@ export default function OptimizationResultTab({
     };
 
     const chartData = prepareChartData();
+
+    // Derive scenario date range (prefer inventoryData; fallback to productionPlan)
+    const inventoryDates = (data?.inventoryData || [])
+        .map((item: any) => item?.date)
+        .filter((d: any): d is string => typeof d === 'string' && d.length > 0);
+    const planDates = (data?.productionPlan || [])
+        .map((item: any) => item?.date)
+        .filter((d: any): d is string => typeof d === 'string' && d.length > 0);
+    const dateSource = inventoryDates.length > 0 ? inventoryDates : planDates;
+    const startDateMs = dateSource.length > 0 ? Math.min(...dateSource.map(d => new Date(d).getTime())) : null;
+    const endDateMs = dateSource.length > 0 ? Math.max(...dateSource.map(d => new Date(d).getTime())) : null;
+    const formatDate = (ms: number | null) => (ms ? new Date(ms).toISOString().split('T')[0] : '');
+    const scenarioStart = formatDate(startDateMs);
+    const scenarioEnd = formatDate(endDateMs);
 
     const getEChartsOption = () => {
         const chartData = prepareChartData();
@@ -381,6 +426,15 @@ export default function OptimizationResultTab({
 
     return (
         <div className="space-y-6">
+            {/* Scenario Date Range Label */}
+            {(scenarioStart && scenarioEnd) ? (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                        ช่วงวันที่: <span className="font-medium">{scenarioStart}</span> ถึง <span className="font-medium">{scenarioEnd}</span>
+                    </span>
+                </div>
+            ) : null}
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>

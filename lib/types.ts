@@ -174,6 +174,35 @@ export interface CustomOptimizationRequest {
   description?: string
 }
 
+// Target Percentage Types
+export interface ProductTargetInfo {
+  target_quantity: number
+  percentage: number
+}
+
+export interface BrandTargetInfo {
+  brand_total_target: number
+  brand_percentage: number
+  products: {
+    [combinedKey: string]: ProductTargetInfo
+  }
+}
+
+export interface TargetPercentagesData {
+  [brand: string]: BrandTargetInfo
+}
+
+export interface TargetPercentagesResponse {
+  success: boolean
+  data: TargetPercentagesData
+  scenario_info: {
+    name: string
+    total_target: number
+    optimization_date?: string
+  } | null
+  message: string
+}
+
 // API Error Types
 export interface ApiError {
   response?: {
