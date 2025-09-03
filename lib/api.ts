@@ -39,6 +39,14 @@ export const apiEndpoints = {
     const queryString = params.toString();
     return `${API_BASE_URL}/get_actual_inventory${queryString ? `?${queryString}` : ''}`;
   },
+  // Price data
+  getPrice: (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const queryString = params.toString();
+    return `${API_BASE_URL}/get_price${queryString ? `?${queryString}` : ''}`;
+  },
   
   // Target percentages
   getTargetPercentages: () => `${API_BASE_URL}/get_target_percentages`,

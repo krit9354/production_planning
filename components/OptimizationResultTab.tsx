@@ -49,6 +49,8 @@ export default function OptimizationResultTab({
 }: OptimizationResultTabProps) {
     const [actualInventoryData, setActualInventoryData] = useState<any[]>([]);
     const [loadingActualData, setLoadingActualData] = useState(false);
+    const [priceData, setPriceData] = useState<any[]>([]);
+    const [loadingPrice, setLoadingPrice] = useState(false);
 
     // Fetch actual inventory data when component mounts or data changes
     useEffect(() => {
@@ -84,6 +86,41 @@ export default function OptimizationResultTab({
         };
 
         fetchActualInventoryData();
+    }, [data?.inventoryData]);
+
+    // Fetch material price data for the same date range
+    useEffect(() => {
+        const fetchPriceData = async () => {
+            if (!data?.inventoryData || data.inventoryData.length === 0) return;
+
+            setLoadingPrice(true);
+            try {
+                const dates = data.inventoryData.map(item => item.date).filter(Boolean);
+                const startDate = dates.length > 0 ? Math.min(...dates.map(d => new Date(d).getTime())) : null;
+                const endDate = dates.length > 0 ? Math.max(...dates.map(d => new Date(d).getTime())) : null;
+
+                const startDateStr = startDate ? new Date(startDate).toISOString().split('T')[0] : undefined;
+                const endDateStr = endDate ? new Date(endDate).toISOString().split('T')[0] : undefined;
+
+                const response = await fetch(apiEndpoints.getPrice(startDateStr, endDateStr));
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    setPriceData(result.data);
+                    console.log("✅ Price data loaded:", result.data.length, "records");
+                } else {
+                    console.warn("⚠️ No price data found:", result.message);
+                    setPriceData([]);
+                }
+            } catch (error) {
+                console.error("❌ Error fetching price data:", error);
+                setPriceData([]);
+            } finally {
+                setLoadingPrice(false);
+            }
+        };
+
+        fetchPriceData();
     }, [data?.inventoryData]);
 
     // Process inventory data to extract delivery amounts by pulp type
@@ -304,6 +341,72 @@ export default function OptimizationResultTab({
     };
 
     const chartData = prepareChartData();
+
+    // Helper: get price by date and pulp key
+    const getPriceByDate = (date: string, pulpKey: 'eucalyptus'|'pulp_a'|'pulp_b'|'pulp_c') => {
+        const item = priceData.find(d => d.date === date);
+        if (!item) return null;
+        switch (pulpKey) {
+            case 'eucalyptus': return item.price_eucalyptus;
+            case 'pulp_a': return item.price_pulp_a;
+            case 'pulp_b': return item.price_pulp_b;
+            case 'pulp_c': return item.price_pulp_c;
+            default: return null;
+        }
+    };
+
+    const getPriceEChartsOption = () => {
+        const dates = (processedInventoryData || []).map(item => item?.date || '');
+        if (!dates || dates.length === 0) {
+            return {
+                title: { text: 'ไม่มีข้อมูลราคา', left: 'center' }
+            };
+        }
+
+        return {
+            title: { text: '', left: 'center' },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                formatter: function(params: any) {
+                    if (!params || !Array.isArray(params) || params.length === 0) return '';
+                    let result = `วันที่ ${params[0]?.axisValue || ''}<br/>`;
+                    params.forEach((param: any) => {
+                        if (param && param.value !== null && param.value !== undefined && param.value !== 0) {
+                            const value = typeof param.value === 'number' ? param.value : parseFloat(param.value);
+                            if (!isNaN(value)) {
+                                result += `${param.marker || ''} ${param.seriesName || ''}: ฿${value.toFixed(2)}/กิโลกรัม<br/>`;
+                            }
+                        }
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                type: 'scroll',
+                orient: 'horizontal',
+                left: 'center',
+                top: 'bottom',
+                selected: {
+                    'Eucalyptus Price': true,
+                    'Pulp A Price': true,
+                    'Pulp B Price': true,
+                    'Pulp C Price': true,
+                }
+            },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: dates, axisPointer: { type: 'shadow' } },
+            yAxis: [{ type: 'value', name: 'Price (฿/กิโลกรัม)', position: 'left', axisLabel: { formatter: '฿{value}/กก.' } }],
+            series: [
+                { name: 'Eucalyptus Price', type: 'line', data: dates.map(d => getPriceByDate(d, 'eucalyptus')), lineStyle: { color: '#8b5cf6', width: 2 }, symbol: 'circle', symbolSize: 5 },
+                { name: 'Pulp A Price', type: 'line', data: dates.map(d => getPriceByDate(d, 'pulp_a')), lineStyle: { color: '#28a745', width: 2 }, symbol: 'circle', symbolSize: 5 },
+                { name: 'Pulp B Price', type: 'line', data: dates.map(d => getPriceByDate(d, 'pulp_b')), lineStyle: { color: '#ffc658', width: 2 }, symbol: 'circle', symbolSize: 5 },
+                { name: 'Pulp C Price', type: 'line', data: dates.map(d => getPriceByDate(d, 'pulp_c')), lineStyle: { color: '#ff7300', width: 2 }, symbol: 'circle', symbolSize: 5 },
+            ],
+            animationDuration: 800,
+            animationEasing: 'cubicOut'
+        };
+    };
 
     // Derive scenario date range (prefer inventoryData; fallback to productionPlan)
     const inventoryDates = (data?.inventoryData || [])
@@ -773,6 +876,7 @@ export default function OptimizationResultTab({
                 </CardContent>
             </Card>
 
+            
             {/* Other Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -881,6 +985,29 @@ export default function OptimizationResultTab({
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
+
+                {/* Material Price Chart - Full Width */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Material Price Trend
+                    </CardTitle>
+                    <CardDescription>
+                        แนวโน้มราคาวัตถุดิบรายวัน (฿/กิโลกรัม)
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div style={{ width: '100%', height: '400px' }}>
+                        <ReactECharts
+                            option={getPriceEChartsOption()}
+                            style={{ height: '100%', width: '100%' }}
+                            theme="default"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
             </div>
 
             {/* Summary Statistics */}
