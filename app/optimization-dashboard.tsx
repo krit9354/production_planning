@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, Package, Settings, Target, Database, FileSpreadsheet } from "lucide-react"
+import { Clock, Package, Settings, Target, Database, FileSpreadsheet, Truck } from "lucide-react"
 import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
 import ProductSelectionTab from "@/components/ProductSelectionTab"
 import ScenarioCompareTab from "@/components/ScenarioCompareTab"
 import ScenarioSelector from "@/components/ScenarioSelector"
 import ImportExportTab from "@/components/ImportExportTab"
+import DeliveryEditorTab from "@/components/DeliveryEditorTab"
 import { apiEndpoints } from "@/lib/api"
 import { 
   OptimizationData, 
@@ -364,40 +365,44 @@ export default function OptimizationDashboard() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid grid-cols-7">
-              <TabsTrigger value="original" className="flex items-center gap-2">
+            <TabsList className="grid grid-cols-4 w-full bg-gray-50">
+              <TabsTrigger value="original" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Package className="h-4 w-4" />
                 Original Plan
                 {loadingOriginalPlan && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
-              <TabsTrigger value="optimization" className="flex items-center gap-2">
+              <TabsTrigger value="optimization" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Clock className="h-4 w-4" />
                 Optimization
                 {loadingOptimization && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex items-center gap-2">
+              <TabsTrigger value="products" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Target className="h-4 w-4" />
                 Product Selection
                 {loadingProducts && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
-              <TabsTrigger value="custom" className="flex items-center gap-2">
+              <TabsTrigger value="custom" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Settings className="h-4 w-4" />
                 Custom Adjustment
               </TabsTrigger>
-              <TabsTrigger value="compare" className="flex items-center gap-2">
+              <TabsTrigger value="compare" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Package className="h-4 w-4" />
                 Scenario Compare
               </TabsTrigger>
-              <TabsTrigger value="scenario" className="flex items-center gap-2">
+              <TabsTrigger value="scenario" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <Database className="h-4 w-4" />
                 Scenario Results
                 {(loadingScenarios || loadingScenarioData) && <div className="animate-spin rounded-full h-3 w-3 border-b border-current ml-1"></div>}
               </TabsTrigger>
-              <TabsTrigger value="import-export" className="flex items-center gap-2">
+              <TabsTrigger value="import-export" className="flex items-center gap-2 hover:scale-110 transition-all">
                 <FileSpreadsheet className="h-4 w-4" />
                 Import/Export
+              </TabsTrigger>
+              <TabsTrigger value="delivery" className="flex items-center gap-2 hover:scale-110 transition-all">
+                <Truck className="h-4 w-4" />
+                Delivery
               </TabsTrigger>
             </TabsList>
           </div>
@@ -466,6 +471,16 @@ export default function OptimizationDashboard() {
                 fetchOriginalPlanData()
                 fetchProductsData()
                 fetchScenarios()
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="delivery" className="space-y-6">
+            <DeliveryEditorTab 
+              onRefresh={() => {
+                // Optionally refresh related data
+                fetchOptimizationData()
+                fetchOriginalPlanData()
               }}
             />
           </TabsContent>

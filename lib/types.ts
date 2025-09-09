@@ -98,6 +98,20 @@ export interface Delivery {
   date?: string
 }
 
+export interface DeliveryRow {
+  date: string
+  pulp_type: string
+  amount: number
+}
+
+export interface SyncDeliveryRequest {
+  items: DeliveryRow[]
+}
+
+export interface DeliveryEditorTabProps {
+  onRefresh: () => void
+}
+
 export interface InventoryItem {
   day: number
   date: string

@@ -50,6 +50,17 @@ export const apiEndpoints = {
   
   // Target percentages
   getTargetPercentages: () => `${API_BASE_URL}/get_target_percentages`,
+  
+  // Delivery
+  getDelivery: (startDate?: string, endDate?: string, pulpType?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (pulpType) params.append('pulp_type', pulpType);
+    const queryString = params.toString();
+    return `${API_BASE_URL}/get_delivery${queryString ? `?${queryString}` : ''}`;
+  },
+  syncDelivery: () => `${API_BASE_URL}/sync_delivery`,
 };
 
 export { API_BASE_URL };
