@@ -8,7 +8,7 @@ import OptimizationResultTab from "@/components/OptimizationResultTab"
 import CustomAdjustmentTab from "@/components/CustomAdjustmentTab"
 import ProductSelectionTab from "@/components/ProductSelectionTab"
 import ScenarioCompareTab from "@/components/ScenarioCompareTab"
-import ScenarioSelector from "@/components/ScenarioSelector"
+import ScenarioResultTab from "@/components/ScenarioResultTab"
 import ImportExportTab from "@/components/ImportExportTab"
 import DeliveryEditorTab from "@/components/DeliveryEditorTab"
 import { apiEndpoints } from "@/lib/api"
@@ -416,7 +416,7 @@ export default function OptimizationDashboard() {
           </TabsContent>
 
           <TabsContent value="scenario" className="space-y-6">
-            <ScenarioSelector
+            <ScenarioResultTab
               scenarios={scenarios}
               selectedScenario={selectedScenario}
               onSelectedScenarioChange={setSelectedScenario}

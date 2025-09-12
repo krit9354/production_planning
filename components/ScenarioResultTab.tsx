@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { apiEndpoints } from "@/lib/api";
 import OptimizationResultTab from "./OptimizationResultTab";
 
-interface ScenarioSelectorProps {
+interface ScenarioResultProps {
     scenarios: string[];
     selectedScenario: string;
     onSelectedScenarioChange: (scenario: string) => void;
@@ -32,7 +32,7 @@ interface ScenarioSelectorProps {
     onSaveScenario?: (scenarioName: string, data: any) => void; // callback สำหรับ save
 }
 
-export default function ScenarioSelector({
+export default function ScenarioResultTab({
     scenarios,
     selectedScenario,
     onSelectedScenarioChange,
@@ -42,7 +42,7 @@ export default function ScenarioSelector({
     loading = false,
     onRefresh,
     onSaveScenario,
-}: ScenarioSelectorProps) {
+}: ScenarioResultProps) {
     const [isSaving, setIsSaving] = React.useState(false);
     const [showConfirmModal, setShowConfirmModal] = React.useState(false);
 
@@ -236,12 +236,15 @@ export default function ScenarioSelector({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {selectedScenario !== "main_standard_ga" &&
-                                selectedScenario && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
+                            {selectedScenario !== "optimize_next_week" && 
+                            selectedScenario !== "optimize_this_week" && 
+                            selectedScenario !== "origin_plan_this_week" && 
+                            selectedScenario !== "origin_plan_next_week" && 
+                            selectedScenario && (
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                             onDeleteScenario(selectedScenario);
                                         }}
                                         className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
