@@ -61,7 +61,7 @@ export default function CustomAdjustmentTab({
     scenarios,
     loadingScenarios,
 }: CustomAdjustmentTabProps) {
-    const [customRatios, setCustomRatios] = useState<Product[]>([]);
+    const [customRatios, setCustomRatios] = useState<Product[]>([]); // now only formula adjustable; ratios read-only
     const [isProcessing, setIsProcessing] = useState(false);
     const [originalResults, setOriginalResults] = useState<OptimizationData | null>(null);
     const [customResults, setCustomResults] = useState<OptimizationData | null>(null);
@@ -77,19 +77,7 @@ export default function CustomAdjustmentTab({
     // Stable key for identifying a product regardless of filtering/sorting
     const getProductKey = (p: Product) => [p.brand ?? '', p.product_group ?? '', p.thickness ?? '', p.channel ?? ''].join('|');
 
-    // Create percentage options for dropdowns
-    const createPercentageOptions = (max: number) => {
-        const options = [];
-        for (let i = 0; i <= max; i += 5) {
-            options.push(i);
-        }
-        return options;
-    };
-
-    // Create options for each pulp type
-    const pulpAOptions = createPercentageOptions(100); // 0-100
-    const pulpBOptions = createPercentageOptions(50);  // 0-50
-    const pulpCOptions = createPercentageOptions(75);  // 0-75
+    // Removed ratio edit options - ratios derived from backend formula (display only)
 
     // Fetch formula data from API
     const fetchFormulaData = async () => {
@@ -135,42 +123,25 @@ export default function CustomAdjustmentTab({
         }
     }, [selectedScenario]);
 
-    // Handle ratio input change
-    const handleRatioChange = (
-        productKey: string,
-        material: string,
-        value: string
-    ) => {
-        const numValue = parseFloat(value) || 0;
-        console.log(`Changing product ${productKey} material ${material} to ${numValue}%`);
-        setCustomRatios((prev) =>
-            prev.map((product, index) =>
-                getProductKey(product) === productKey
-                    ? {
-                          ...product,
-                          ratios: {
-                              ...product.ratios,
-                              [material]: numValue / 100, // Convert percentage to decimal for API
-                          },
-                      }
-                    : product
-            )
-        );
-    };
+    // Removed handleRatioChange since ratios are no longer editable
 
     // Handle formula change
     const handleFormulaChange = (productKey: string, newFormula: string) => {
         console.log(`Changing product ${productKey} formula to ${newFormula}`);
-        setCustomRatios((prev) =>
-            prev.map((product, index) =>
-                getProductKey(product) === productKey
-                    ? {
-                          ...product,
-                          formula: newFormula,
-                      }
-                    : product
-            )
-        );
+        const deriveRatiosFromFormula = (formula: string | undefined) => {
+            if (!formula) return { Pulp_A: 0.5, Pulp_B: 0.5, Pulp_C: 0, Eucalyptus: 0 };
+            const f = formula.toLowerCase();
+            if (f.endsWith('best')) return { Pulp_A: 1.0, Pulp_B: 0.0, Pulp_C: 0, Eucalyptus: 0 };
+            if (f.endsWith('base')) return { Pulp_A: 0.5, Pulp_B: 0.5, Pulp_C: 0, Eucalyptus: 0 };
+            if (f.endsWith('worst')) return { Pulp_A: 0.2, Pulp_B: 0.8, Pulp_C: 0, Eucalyptus: 0 };
+            return { Pulp_A: 0.5, Pulp_B: 0.5, Pulp_C: 0, Eucalyptus: 0 };
+        };
+        const newRatios = deriveRatiosFromFormula(newFormula);
+        setCustomRatios(prev => prev.map(product =>
+            getProductKey(product) === productKey
+                ? { ...product, formula: newFormula, ratios: { ...product.ratios, ...newRatios } }
+                : product
+        ));
     };
 
     // Process optimization with custom ratios
@@ -181,24 +152,12 @@ export default function CustomAdjustmentTab({
         }
 
         // ตรวจสอบว่าทุก product มี status เป็น valid
-        const hasInvalidRatios = customRatios.some(product => !validateRatios(product));
-        
-        if (hasInvalidRatios) {
-            // สร้างรายการ products ที่ไม่ valid
-            const invalidProducts = customRatios.filter(product => !validateRatios(product));
-            const invalidList = invalidProducts.map(product => {
-                const sum = ((product.ratios?.Pulp_A || 0) + (product.ratios?.Pulp_B || 0) + (product.ratios?.Pulp_C || 0)) * 100;
-                return `- ${product.name}: ${sum.toFixed(1)}% (ต้องเป็น 100%)`;
-            }).join('\n');
-            
-            alert(`❌ ไม่สามารถประมวลผลได้ เนื่องจากมีผลิตภัณฑ์ที่อัตราส่วน Pulp A + B + C ไม่เท่ากับ 100%\n\nรายการที่ต้องแก้ไข:\n${invalidList}\n\nกรุณาแก้ไขอัตราส่วนให้ถูกต้องก่อนประมวลผล`);
-            return;
-        }
+        // Validation of ratios removed (backend derives from formula)
 
         setIsProcessing(true);
         try {
             // Prepare data for API call with custom structure
-            const settings: { [key: string]: { formula: string; pulp_ratios: { Pulp_A: number; Pulp_B: number; Pulp_C: number; Eucalyptus: number } } } = {};
+            const settings: { [key: string]: { formula: string } } = {};
             
             customRatios.forEach((product) => {
                 // สร้าง key ที่รวม brand|product_group|thickness|channel หรือใช้แค่ product_group|name สำหรับ backward compatibility
@@ -208,12 +167,6 @@ export default function CustomAdjustmentTab({
                 
                 settings[productKey] = {
                     formula: product.formula,
-                    pulp_ratios: {
-                        Pulp_A: product.ratios?.Pulp_A || 0,
-                        Pulp_B: product.ratios?.Pulp_B || 0,
-                        Pulp_C: product.ratios?.Pulp_C || 0,
-                        Eucalyptus: product.ratios?.Eucalyptus || 0
-                    }
                 };
             });
 
@@ -243,21 +196,8 @@ export default function CustomAdjustmentTab({
         }
     };
 
-    // Validate ratios (should sum to 100% excluding eucalyptus)
-    const validateRatios = (product: Product) => {
-        // Handle API format - use ratios object
-        const ratios = product.ratios;
-        if (!ratios) return false;
-
-        // Convert decimal to percentage and sum
-        const sum =
-            ((ratios.Pulp_A || 0) +
-                (ratios.Pulp_B || 0) +
-                (ratios.Pulp_C || 0)) *
-            100;
-        const isValid = Math.abs(sum - 100) < 0.1; // Allow small tolerance
-        return isValid;
-    };
+    // Ratios are no longer validated client-side (read-only display)
+    const validateRatios = (_product: Product) => true;
 
     // Get original ratios from API results
     const getOriginalRatios = (product: Product) => {
@@ -309,7 +249,6 @@ export default function CustomAdjustmentTab({
             data?.inventoryData?.map((item: InventoryItem) => {
                 let delivery_pulp_a = 0;
                 let delivery_pulp_b = 0;
-                let delivery_pulp_c = 0;
 
                 if (item.deliveries && item.deliveries.length > 0) {
                     item.deliveries.forEach((delivery: Delivery) => {
@@ -320,9 +259,7 @@ export default function CustomAdjustmentTab({
                             case "Pulp_B":
                                 delivery_pulp_b += delivery.amount || 0;
                                 break;
-                            case "Pulp_C":
-                                delivery_pulp_c += delivery.amount || 0;
-                                break;
+                            // Removed Pulp_C handling
                         }
                     });
                 }
@@ -331,7 +268,7 @@ export default function CustomAdjustmentTab({
                     ...item,
                     delivery_pulp_a,
                     delivery_pulp_b,
-                    delivery_pulp_c,
+                    // delivery_pulp_c removed
                 };
             }) || []
         );
@@ -439,12 +376,12 @@ export default function CustomAdjustmentTab({
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Factory className="h-6 w-6" />
-                            Adjust Material Ratios - ปรับแต่งอัตราส่วนวัตถุดิบ
+                            Adjust Formulas - ปรับเฉพาะสูตร (อัตราส่วนแสดงจากสูตร)
                         </CardTitle>
                         <CardDescription>
-                            แก้ไขสูตรและอัตราส่วนวัตถุดิบของแต่ละผลิตภัณฑ์ (Pulp A + Pulp B + Pulp C ต้องรวมเป็น 100%)
+                            เลือกสูตรใหม่สำหรับผลิตภัณฑ์ อัตราส่วน Pulp A/B จะดึงจากสูตรโดยอัตโนมัติ (ไม่มี Pulp C ให้ปรับ)
                             <br />
-                            <strong>แถวที่ 1:</strong> ค่าเดิมจาก scenario ที่เลือก | <strong>แถวที่ 2:</strong> ปรับแต่งสูตรและอัตราส่วน
+                            <strong>แถวที่ 1:</strong> ค่าเดิม | <strong>แถวที่ 2:</strong> สูตรที่ปรับ (อัตราส่วนแสดงผลเท่านั้น)
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -471,9 +408,6 @@ export default function CustomAdjustmentTab({
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
                                     Pulp B (%)
-                                </TableHead>
-                                <TableHead className="text-center font-semibold">
-                                    Pulp C (%)
                                 </TableHead>
                                 <TableHead className="text-center font-semibold">
                                     Eucalyptus (%)
@@ -561,16 +495,7 @@ export default function CustomAdjustmentTab({
                                                 )?.toFixed(1) || "N/A"}
                                                 %
                                             </TableCell>
-                                            <TableCell
-                                                className="text-center text-gray-600 text-sm"
-                                                style={{ borderBottom: "none" }}
-                                            >
-                                                {(
-                                                    (originalRatios.Pulp_C ||
-                                                        0) * 100
-                                                )?.toFixed(1) || "N/A"}
-                                                %
-                                            </TableCell>
+                                            {/* Removed original Pulp C column */}
                                             <TableCell
                                                 className="text-center text-gray-600 text-sm"
                                                 style={{ borderBottom: "none" }}
@@ -596,21 +521,12 @@ export default function CustomAdjustmentTab({
                                                 style={{ borderBottom: "none" }}
                                                 rowSpan={2}
                                             >
-                                                {isValid ? (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="bg-green-50 text-green-700 border-green-200"
-                                                    >
-                                                        ✓ Valid
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="bg-red-50 text-red-700 border-red-200"
-                                                    >
-                                                        ✗ Invalid
-                                                    </Badge>
-                                                )}
+                                                <Badge
+                                                    variant="outline"
+                                                    className="bg-green-50 text-green-700 border-green-200"
+                                                >
+                                                    ✓ Fixed
+                                                </Badge>
                                             </TableCell>
                                         </TableRow>
 
@@ -640,48 +556,13 @@ export default function CustomAdjustmentTab({
                                                     }
                                                 </select>
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <select
-                                                    id={`pulp-a-select-${index}-${product.name || product.product_group}`}
-                                                    value={Math.round((product.ratios?.Pulp_A || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_A", e.target.value)}
-                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                >
-                                                    {pulpAOptions.map((option) => (
-                                                        <option key={`product-${index}-pulp-a-${option}`} value={option.toString()}>
-                                                            {option}%
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                            <TableCell className="text-center text-m text-black">
+                                                {((product.ratios?.Pulp_A || 0) * 100).toFixed(1)}%
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <select
-                                                    id={`pulp-b-select-${index}-${product.name || product.product_group}`}
-                                                    value={Math.round((product.ratios?.Pulp_B || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_B", e.target.value)}
-                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                >
-                                                    {pulpBOptions.map((option) => (
-                                                        <option key={`product-${index}-pulp-b-${option}`} value={option.toString()}>
-                                                            {option}%
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                            <TableCell className="text-center text-m text-black">
+                                                {((product.ratios?.Pulp_B || 0) * 100).toFixed(1)}%
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <select
-                                                    id={`pulp-c-select-${index}-${product.name || product.product_group}`}
-                                                    value={Math.round((product.ratios?.Pulp_C || 0) * 100).toString()}
-                                                    onChange={(e) => handleRatioChange(getProductKey(product), "Pulp_C", e.target.value)}
-                                                    className="w-20 h-8 text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                >
-                                                    {pulpCOptions.map((option) => (
-                                                        <option key={`product-${index}-pulp-c-${option}`} value={option.toString()}>
-                                                            {option}%
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </TableCell>
+                                            {/* Removed editable Pulp C cell */}
                                         </TableRow>
                                     </React.Fragment>
                                 );
